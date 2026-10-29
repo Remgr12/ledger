@@ -1,0 +1,38 @@
+[package]
+name = "erp-server"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "erp_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ledger-server"
+path = "src/main.rs"
+
+[dependencies]
+erp-kernel = { path = "../erp-kernel" }
+erp-ffi = { path = "../erp-ffi" }
+mod-inventory = { path = "../modules/mod-inventory" }
+mod-contacts = { path = "../modules/mod-contacts" }
+mod-invoicing = { path = "../modules/mod-invoicing" }
+mod-accounting = { path = "../modules/mod-accounting" }
+mod-purchasing = { path = "../modules/mod-purchasing" }
+mod-manufacturing = { path = "../modules/mod-manufacturing" }
+mod-projects = { path = "../modules/mod-projects" }
+rust_decimal = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+rusqlite = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { version = "4.6", features = ["derive", "env"] }
+
+[dev-dependencies]
+http-body-util = "0.1.5"
+tower = { version = "0.5.3", features = ["util"] }

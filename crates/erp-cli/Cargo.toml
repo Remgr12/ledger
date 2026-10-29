@@ -1,0 +1,16 @@
+[package]
+name = "erp-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+erp-ffi = { path = "../erp-ffi" }
+erp-kernel = { path = "../erp-kernel" }
+erp-server = { path = "../erp-server" }
+mod-inventory = { path = "../modules/mod-inventory" }
+mod-contacts = { path = "../modules/mod-contacts" }
+mod-invoicing = { path = "../modules/mod-invoicing" }
+rust_decimal = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+clap = { version = "4.6", features = ["derive"] }

@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/erp-kernel",
+    "crates/erp-plugin-host",
+    "crates/modules/mod-contacts",
+    "crates/modules/mod-invoicing",
+    "crates/modules/mod-inventory",
+    "crates/modules/mod-accounting",
+    "crates/modules/mod-purchasing",
+    "crates/modules/mod-manufacturing",
+    "crates/modules/mod-projects",
+    "crates/erp-ffi",
+    "crates/erp-server",
+    "crates/erp-cli",
+]
+
+[workspace.dependencies]
+rusqlite = { version = "0.32", features = ["bundled", "chrono", "uuid"] }
+rust_decimal = { version = "1.36", features = ["serde-with-str"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2.0"
+qrcode = "0.14"
+parking_lot = "0.12"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+uniffi = { version = "0.28", features = ["cli"] }
+extism = "1.4"
+tokio = { version = "1.40", features = ["full"] }
+axum = "0.7"

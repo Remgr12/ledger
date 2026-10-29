@@ -1,0 +1,17 @@
+[package]
+name = "mod-projects"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+erp-kernel = { path = "../../erp-kernel" }
+mod-contacts = { path = "../mod-contacts" }
+mod-invoicing = { path = "../mod-invoicing" }
+rusqlite = { workspace = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }

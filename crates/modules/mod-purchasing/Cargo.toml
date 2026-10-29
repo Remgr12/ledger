@@ -1,0 +1,17 @@
+[package]
+name = "mod-purchasing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+erp-kernel = { path = "../../erp-kernel" }
+mod-contacts = { path = "../mod-contacts" }
+mod-inventory = { path = "../mod-inventory" }
+rusqlite = { workspace = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }

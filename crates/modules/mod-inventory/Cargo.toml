@@ -1,0 +1,16 @@
+[package]
+name = "mod-inventory"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+erp-kernel = { path = "../../erp-kernel" }
+rusqlite = { workspace = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+qrcode = { workspace = true }
+tracing = { workspace = true }

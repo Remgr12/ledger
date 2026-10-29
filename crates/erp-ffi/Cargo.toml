@@ -1,0 +1,31 @@
+[package]
+name = "erp-ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["lib", "cdylib", "staticlib"]
+name = "erp_ffi"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+erp-kernel = { path = "../erp-kernel" }
+erp-plugin-host = { path = "../erp-plugin-host" }
+mod-contacts = { path = "../modules/mod-contacts" }
+mod-invoicing = { path = "../modules/mod-invoicing" }
+mod-inventory = { path = "../modules/mod-inventory" }
+mod-accounting = { path = "../modules/mod-accounting" }
+mod-purchasing = { path = "../modules/mod-purchasing" }
+mod-manufacturing = { path = "../modules/mod-manufacturing" }
+mod-projects = { path = "../modules/mod-projects" }
+uniffi = { workspace = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+parking_lot = { workspace = true }
