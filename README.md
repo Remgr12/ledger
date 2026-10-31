@@ -175,7 +175,4 @@ Licensed under the GNU Lesser General Public License v2.1:
 
 ## Links
 
-- [Forgejo Repository](https://git.soventa.tech/moha/ledger)
-- [Vikunja Project Board](https://tasks.soventa.tech/projects/2)
-- [Releases & Changelog](https://git.soventa.tech/moha/ledger/releases)
-- [Soventa Services](https://soventa.tech)
+- [Documentation](https://docs.soventa.tech/books/ledger)
