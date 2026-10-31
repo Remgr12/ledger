@@ -235,4 +235,12 @@ Tracked in Vikunja project `ledger`:
 * **LEDGER-19**: Recurring subscription invoicing & client retainer deposit tracking (automated billing schedules, deferred revenue drawdown).
 * **LEDGER-20**: Advanced inventory Pareto ABC analysis, aging heatmaps & dynamic safety stock (EOQ reordering, warehouse floor plan heatmap).
 * **LEDGER-21**: Database encryption at rest (SQLCipher / ChaCha20) & authenticated P2P sync via TLS/PSK and QR peer pairing.
+* **LEDGER-22**: On-device offline OCR receipt and vendor invoice intake (Tesseract / ONNX bounding-box verification, auto-draft purchase invoices).
+* **LEDGER-23**: Individual serial number tracking, post-sale warranty validation, calibration intervals, and equipment maintenance history logs.
+* **LEDGER-24**: Offline POS cashier mode with touch-friendly sales screen, cash drawer kick pulse (`ESC p`), receipt printing, and X/Z shift reconciliation.
+* **LEDGER-25**: Multi-warehouse stock transfer orders, in-transit virtual holding locations, and dispatch/receiving mobile barcode workflows.
+* **LEDGER-26**: Workstation capacity planning, machine operational hours, and interactive Gantt / timeline production scheduling in Manufacturing.
+* **LEDGER-27**: Automated local network NAS/SMB/SFTP encrypted snapshot backup scheduler and 1-click external USB drive synchronization.
+* **LEDGER-28**: European B2B e-invoicing compliance with hybrid PDF/A-3 Factur-X / ZUGFeRD 2.2 and UBL 2.1 machine-readable XML embedding.
+
 
