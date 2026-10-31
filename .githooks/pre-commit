@@ -1,0 +1,11 @@
+#!/bin/sh
+# Ledger Git Pre-Commit Hook
+# Validates Rust workspace compilation before committing
+
+set -e
+
+echo "==> [pre-commit] Validating Rust workspace..."
+cargo check --workspace --quiet
+
+echo "==> [pre-commit] All pre-commit checks passed successfully."
+exit 0

@@ -116,3 +116,11 @@ impl From<mod_projects::ProjectsError> for ErpFfiError {
         }
     }
 }
+
+impl From<rusqlite::Error> for ErpFfiError {
+    fn from(e: rusqlite::Error) -> Self {
+        ErpFfiError::DatabaseError {
+            details: e.to_string(),
+        }
+    }
+}

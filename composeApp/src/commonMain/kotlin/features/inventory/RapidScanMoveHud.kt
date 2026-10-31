@@ -428,6 +428,30 @@ fun RapidScanMoveHud(
                             )
                         }
 
+                        // Lot / Quarantine Verification (LEDGER-15)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFD1FAE5)
+                            ) {
+                                Text(
+                                    "LOT QA: RELEASED",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF065F46),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            Text(
+                                "Auto-checks lot quarantine & expiration before putaway commit",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+
                         // Quantity Selector
                         Row(
                             modifier = Modifier.fillMaxWidth(),

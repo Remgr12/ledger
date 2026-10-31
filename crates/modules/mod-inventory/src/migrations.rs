@@ -79,5 +79,20 @@ pub fn get_migrations() -> Vec<Migration> {
             CREATE INDEX IF NOT EXISTS idx_quants_loc ON stock_quants(location_id);
             "#,
         },
+        Migration {
+            version: 2,
+            name: "create_inventory_lots_table",
+            sql: r#"
+            CREATE TABLE IF NOT EXISTS inventory_lots (
+                lot_number TEXT PRIMARY KEY,
+                item_id TEXT NOT NULL REFERENCES inventory_items(id),
+                expiration_date TEXT,
+                quarantine_status TEXT NOT NULL DEFAULT 'released',
+                manufacturer_batch TEXT,
+                created_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_lots_item ON inventory_lots(item_id);
+            "#,
+        },
     ]
 }

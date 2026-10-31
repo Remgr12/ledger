@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -23,9 +24,12 @@ import uniffi.erp_ffi.ProjectDto
 @Composable
 fun ProjectsScreen() {
     var projects by remember { mutableStateOf(ErpBridge.listProjects()) }
+    var projectTasks by remember { mutableStateOf(ErpBridge.listProjectTasks(null)) }
+    var unbilledSummary by remember { mutableStateOf(ErpBridge.getUnbilledHoursSummary(null)) }
     var showLogTimeDialog by remember { mutableStateOf<ProjectDto?>(null) }
     var generatedInvoice by remember { mutableStateOf<InvoiceDto?>(null) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var showKanbanTasks by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -46,22 +50,57 @@ fun ProjectsScreen() {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Track project time, billable hours, and 1-click automated sales invoice generation",
+                    text = "Interactive Kanban task workflows, quick time chips, and automated invoicing",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            IconButton(onClick = {
-                projects = ErpBridge.listProjects()
-                statusMessage = null
-                generatedInvoice = null
-            }) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilterChip(
+                    selected = showKanbanTasks,
+                    onClick = { showKanbanTasks = !showKanbanTasks },
+                    label = { Text(if (showKanbanTasks) "Task Kanban" else "Projects View", fontSize = 12.sp) },
+                    leadingIcon = { Icon(if (showKanbanTasks) Icons.Default.ViewKanban else Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                )
+
+                IconButton(onClick = {
+                    projects = ErpBridge.listProjects()
+                    projectTasks = ErpBridge.listProjectTasks(null)
+                    unbilledSummary = ErpBridge.getUnbilledHoursSummary(null)
+                    statusMessage = null
+                    generatedInvoice = null
+                }) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // LEDGER-14: Unbilled Hours Summary Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("UNBILLED WORK IN PROGRESS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("${unbilledSummary.totalUnbilledHours} hours pending (${unbilledSummary.unbilledEntriesCount} entries)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("BILLABLE VALUE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("${unbilledSummary.totalUnbilledAmount} USD", fontWeight = FontWeight.Bold, fontSize = 16.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Status or Generated Invoice notification
         statusMessage?.let { msg ->
@@ -124,30 +163,101 @@ fun ProjectsScreen() {
             }
         }
 
-        // Projects List
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(projects) { project ->
-                ProjectCard(
-                    project = project,
-                    onLogTime = { showLogTimeDialog = project },
-                    onInvoiceTimesheets = {
-                        val inv = ErpBridge.invoiceUnbilledTimesheets(project.id)
-                        if (inv != null) {
-                            generatedInvoice = inv
-                            statusMessage = "Successfully generated invoice ${inv.invoiceNumber} for unbilled hours!"
-                        } else {
-                            statusMessage = "No unbilled timesheets found to invoice or error occurred."
+        if (showKanbanTasks) {
+            // Task Kanban Board (LEDGER-14)
+            val columns = listOf("Backlog", "In Progress", "Review", "Done")
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                columns.forEach { colName ->
+                    val tasksInCol = projectTasks.filter { it.status.equals(colName, ignoreCase = true) }
+                    Card(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(colName, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surface) {
+                                    Text("${tasksInCol.size}", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
+                                items(tasksInCol) { task ->
+                                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text(task.title, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                Text("${task.estimatedHours}h est", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                                                    Text(task.priority, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                                }
+                                            }
+
+                                            // Advance status button
+                                            val nextStatus = when (colName) {
+                                                "Backlog" -> "In Progress"
+                                                "In Progress" -> "Review"
+                                                "Review" -> "Done"
+                                                else -> null
+                                            }
+                                            if (nextStatus != null) {
+                                                Button(
+                                                    onClick = {
+                                                        ErpBridge.updateProjectTaskStatus(task.id, nextStatus)
+                                                        projectTasks = ErpBridge.listProjectTasks(null)
+                                                        statusMessage = "✓ Advanced '${task.title}' to $nextStatus"
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Text("Advance → $nextStatus", fontSize = 10.sp)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                )
+                }
+            }
+        } else {
+            // Projects List
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(projects) { project ->
+                    ProjectCard(
+                        project = project,
+                        onLogTime = { showLogTimeDialog = project },
+                        onInvoiceTimesheets = {
+                            val inv = ErpBridge.invoiceUnbilledTimesheets(project.id)
+                            if (inv != null) {
+                                generatedInvoice = inv
+                                unbilledSummary = ErpBridge.getUnbilledHoursSummary(null)
+                                statusMessage = "Successfully generated invoice ${inv.invoiceNumber} for unbilled hours!"
+                            } else {
+                                statusMessage = "No unbilled timesheets found to invoice or error occurred."
+                            }
+                        }
+                    )
+                }
             }
         }
     }
 
-    // Log Time Dialog
+    // Log Time Dialog with quick chips (LEDGER-14)
     showLogTimeDialog?.let { prj ->
         var hours by remember { mutableStateOf("4.0") }
         var description by remember { mutableStateOf("Hardware assembly and system integration") }
@@ -157,13 +267,24 @@ fun ProjectsScreen() {
             onDismissRequest = { showLogTimeDialog = null },
             title = { Text("Log Time: ${prj.name}") },
             text = {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         "Billing Rate: ${prj.billingRateHourly ?: "100.00"} USD/hr",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Quick Time Chips (+1h, +2h, +4h, +8h)
+                    Text("Quick Presets:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("1.0", "2.0", "4.0", "8.0").forEach { h ->
+                            FilterChip(
+                                selected = hours == h,
+                                onClick = { hours = h },
+                                label = { Text("+${h}h", fontSize = 11.sp) }
+                            )
+                        }
+                    }
 
                     OutlinedTextField(
                         value = hours,
@@ -173,16 +294,12 @@ fun ProjectsScreen() {
                         singleLine = true
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
                         label = { Text("Activity / Task Description") },
                         modifier = Modifier.fillMaxWidth()
                     )
-
-                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically
@@ -206,6 +323,7 @@ fun ProjectsScreen() {
                             isBillable = isBillable
                         )
                         if (success) {
+                            unbilledSummary = ErpBridge.getUnbilledHoursSummary(null)
                             statusMessage = "Logged $hours hours for ${prj.name}."
                         }
                         showLogTimeDialog = null

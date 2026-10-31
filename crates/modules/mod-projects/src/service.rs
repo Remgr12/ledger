@@ -302,6 +302,157 @@ impl ProjectsService {
         Ok(list)
     }
 
+    /// Update status of a project task (e.g. Backlog -> In Progress -> Review -> Done)
+    pub fn update_task_status(
+        ctx: &ModuleContext,
+        task_id: &str,
+        new_status: &str,
+    ) -> Result<ProjectTask, ProjectsError> {
+        let task = {
+            let conn = ctx.db.conn();
+            conn.execute(
+                "UPDATE project_tasks SET status = ?1 WHERE id = ?2",
+                params![new_status, task_id],
+            )?;
+
+            let mut stmt = conn.prepare(
+                "SELECT id, project_id, title, status, priority, estimated_hours, created_at FROM project_tasks WHERE id = ?1"
+            )?;
+
+            stmt.query_row(params![task_id], |row| {
+                let id: String = row.get(0)?;
+                let project_id: String = row.get(1)?;
+                let title: String = row.get(2)?;
+                let status: String = row.get(3)?;
+                let priority: String = row.get(4)?;
+                let est_str: String = row.get(5)?;
+                let created_at_str: String = row.get(6)?;
+
+                let estimated_hours = Decimal::from_str(&est_str).unwrap_or(Decimal::ZERO);
+                let created_at = chrono::DateTime::parse_from_rfc3339(&created_at_str)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now());
+
+                Ok(ProjectTask {
+                    id,
+                    project_id,
+                    title,
+                    status,
+                    priority,
+                    estimated_hours,
+                    created_at,
+                })
+            })?
+        };
+
+        let _ = ctx.record_and_publish_event(
+            "ProjectTaskStatusUpdated",
+            "ProjectTask",
+            task_id,
+            serde_json::to_value(&task).unwrap_or(serde_json::Value::Null),
+            "system",
+        )?;
+
+        Ok(task)
+    }
+
+    /// List all project tasks, optionally filtered by project_id
+    pub fn list_tasks(
+        conn: &Connection,
+        project_id: Option<&str>,
+    ) -> Result<Vec<ProjectTask>, ProjectsError> {
+        if let Some(pid) = project_id {
+            let mut stmt = conn.prepare(
+                "SELECT id, project_id, title, status, priority, estimated_hours, created_at FROM project_tasks WHERE project_id = ?1 ORDER BY created_at ASC"
+            )?;
+            let rows = stmt.query_map(params![pid], Self::map_task_row)?;
+            let mut list = Vec::new();
+            for r in rows {
+                list.push(r?);
+            }
+            Ok(list)
+        } else {
+            let mut stmt = conn.prepare(
+                "SELECT id, project_id, title, status, priority, estimated_hours, created_at FROM project_tasks ORDER BY created_at ASC"
+            )?;
+            let rows = stmt.query_map([], Self::map_task_row)?;
+            let mut list = Vec::new();
+            for r in rows {
+                list.push(r?);
+            }
+            Ok(list)
+        }
+    }
+
+    /// Get unbilled hours summary: (total_hours, total_amount, entries_count)
+    pub fn get_unbilled_summary(
+        conn: &Connection,
+        project_id: Option<&str>,
+    ) -> Result<(Decimal, Decimal, u32), ProjectsError> {
+        let mut total_hours = Decimal::ZERO;
+        let mut total_amount = Decimal::ZERO;
+        let mut count = 0;
+
+        if let Some(pid) = project_id {
+            let mut stmt = conn.prepare(
+                "SELECT hours, billing_amount FROM timesheets WHERE project_id = ?1 AND is_billable = 1 AND is_invoiced = 0"
+            )?;
+            let rows = stmt.query_map(params![pid], |r| {
+                let h: String = r.get(0)?;
+                let a: String = r.get(1)?;
+                Ok((h, a))
+            })?;
+            for r in rows {
+                let (h, a) = r?;
+                total_hours += Decimal::from_str(&h).unwrap_or(Decimal::ZERO);
+                total_amount += Decimal::from_str(&a).unwrap_or(Decimal::ZERO);
+                count += 1;
+            }
+        } else {
+            let mut stmt = conn.prepare(
+                "SELECT hours, billing_amount FROM timesheets WHERE is_billable = 1 AND is_invoiced = 0"
+            )?;
+            let rows = stmt.query_map([], |r| {
+                let h: String = r.get(0)?;
+                let a: String = r.get(1)?;
+                Ok((h, a))
+            })?;
+            for r in rows {
+                let (h, a) = r?;
+                total_hours += Decimal::from_str(&h).unwrap_or(Decimal::ZERO);
+                total_amount += Decimal::from_str(&a).unwrap_or(Decimal::ZERO);
+                count += 1;
+            }
+        }
+
+        Ok((total_hours, total_amount, count))
+    }
+
+    fn map_task_row(row: &Row<'_>) -> Result<ProjectTask, rusqlite::Error> {
+        let id: String = row.get(0)?;
+        let project_id: String = row.get(1)?;
+        let title: String = row.get(2)?;
+        let status: String = row.get(3)?;
+        let priority: String = row.get(4)?;
+        let est_str: String = row.get(5)?;
+        let created_at_str: String = row.get(6)?;
+
+        let estimated_hours = Decimal::from_str(&est_str).unwrap_or(Decimal::ZERO);
+        let created_at = chrono::DateTime::parse_from_rfc3339(&created_at_str)
+            .map(|dt| dt.with_timezone(&Utc))
+            .unwrap_or_else(|_| Utc::now());
+
+        Ok(ProjectTask {
+            id,
+            project_id,
+            title,
+            status,
+            priority,
+            estimated_hours,
+            created_at,
+        })
+    }
+
     fn map_project_row(row: &Row<'_>) -> Result<Project, rusqlite::Error> {
         let id: String = row.get(0)?;
         let name: String = row.get(1)?;

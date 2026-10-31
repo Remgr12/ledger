@@ -1,0 +1,11 @@
+#!/bin/sh
+# Ledger Git Pre-Push Hook
+# Runs test suite before pushing to origin
+
+set -e
+
+echo "==> [pre-push] Running Rust workspace verification..."
+cargo test --workspace --quiet
+
+echo "==> [pre-push] Pre-push tests passed."
+exit 0

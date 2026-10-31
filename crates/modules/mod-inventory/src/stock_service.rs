@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::errors::InventoryError;
 use crate::models::{
-    InventoryItem, ItemLocationMatch, MovementType, StockMovement,
+    InventoryItem, ItemLocationMatch, LotInfo, MovementType, StockMovement,
 };
 use erp_kernel::ModuleContext;
 
@@ -473,10 +473,15 @@ impl StockService {
                 l.map_y,
                 q.quantity,
                 q.lot_number,
-                q.serial_number
+                q.serial_number,
+                i.min_stock_level,
+                lt.expiration_date,
+                lt.quarantine_status,
+                lt.manufacturer_batch
             FROM stock_quants q
             INNER JOIN inventory_items i ON q.item_id = i.id
             INNER JOIN storage_locations l ON q.location_id = l.id
+            LEFT JOIN inventory_lots lt ON q.lot_number = lt.lot_number
             WHERE (i.sku LIKE ?1 OR i.name LIKE ?1 OR i.barcode LIKE ?1 OR q.lot_number LIKE ?1 OR q.serial_number LIKE ?1)
               AND CAST(q.quantity AS REAL) > 0
             ORDER BY l.path_breadcrumb ASC, CAST(q.quantity AS REAL) DESC
@@ -498,8 +503,13 @@ impl StockService {
             let quantity_str: String = row.get(11)?;
             let lot_number: Option<String> = row.get(12)?;
             let serial_number: Option<String> = row.get(13)?;
+            let min_stock_str: String = row.get(14)?;
+            let lot_expiration_date: Option<String> = row.get(15)?;
+            let lot_quarantine_status: Option<String> = row.get(16)?;
+            let lot_manufacturer_batch: Option<String> = row.get(17)?;
 
             let quantity = Decimal::from_str(&quantity_str).unwrap_or(Decimal::ZERO);
+            let min_stock_level = Decimal::from_str(&min_stock_str).unwrap_or(Decimal::ZERO);
 
             Ok(ItemLocationMatch {
                 item_id,
@@ -516,6 +526,10 @@ impl StockService {
                 quantity,
                 lot_number,
                 serial_number,
+                min_stock_level,
+                lot_expiration_date,
+                lot_quarantine_status,
+                lot_manufacturer_batch,
             })
         })?;
 
@@ -525,6 +539,70 @@ impl StockService {
         }
 
         Ok(matches)
+    }
+
+    /// Register or update a tracked lot with expiration, quarantine, and batch information
+    pub fn create_or_update_lot(
+        conn: &Connection,
+        lot_number: &str,
+        item_id: &str,
+        expiration_date: Option<&str>,
+        quarantine_status: Option<&str>,
+        manufacturer_batch: Option<&str>,
+    ) -> Result<LotInfo, InventoryError> {
+        let now = Utc::now();
+        let status = quarantine_status.unwrap_or("released");
+        conn.execute(
+            r#"
+            INSERT INTO inventory_lots (lot_number, item_id, expiration_date, quarantine_status, manufacturer_batch, created_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            ON CONFLICT(lot_number) DO UPDATE SET
+                expiration_date = excluded.expiration_date,
+                quarantine_status = excluded.quarantine_status,
+                manufacturer_batch = excluded.manufacturer_batch
+            "#,
+            params![
+                lot_number,
+                item_id,
+                expiration_date,
+                status,
+                manufacturer_batch,
+                now.to_rfc3339()
+            ],
+        )?;
+
+        Ok(LotInfo {
+            lot_number: lot_number.to_string(),
+            item_id: item_id.to_string(),
+            expiration_date: expiration_date.map(String::from),
+            quarantine_status: status.to_string(),
+            manufacturer_batch: manufacturer_batch.map(String::from),
+            created_at: now,
+        })
+    }
+
+    /// Retrieve metadata for a specific lot
+    pub fn get_lot_info(conn: &Connection, lot_number: &str) -> Result<Option<LotInfo>, InventoryError> {
+        let mut stmt = conn.prepare(
+            "SELECT lot_number, item_id, expiration_date, quarantine_status, manufacturer_batch, created_at FROM inventory_lots WHERE lot_number = ?1"
+        )?;
+        let mut rows = stmt.query(params![lot_number])?;
+        if let Some(row) = rows.next()? {
+            let created_at_str: String = row.get(5)?;
+            let created_at = chrono::DateTime::parse_from_rfc3339(&created_at_str)
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now());
+            Ok(Some(LotInfo {
+                lot_number: row.get(0)?,
+                item_id: row.get(1)?,
+                expiration_date: row.get(2)?,
+                quarantine_status: row.get(3)?,
+                manufacturer_batch: row.get(4)?,
+                created_at,
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Get total on-hand stock across all locations for an item.

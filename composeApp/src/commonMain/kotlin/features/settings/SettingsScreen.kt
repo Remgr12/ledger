@@ -157,7 +157,120 @@ fun SettingsScreen() {
             }
 
             // ==========================================
-            // 2. Local SQLite Backup & Export / Import (LEDGER-9)
+            // 2. Peer-to-Peer LAN / mDNS Synchronization (LEDGER-12)
+            // ==========================================
+            item {
+                var syncStatus by remember { mutableStateOf(ErpBridge.getSyncStatus()) }
+                var syncNotice by remember { mutableStateOf<String?>(null) }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "🌐 Peer-to-Peer LAN Sync (HLC + CRDT)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Zero-config mDNS peer discovery & event log convergence without central server",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (syncStatus.convergenceState == "Converged") Color(0xFFD1FAE5) else Color(0xFFFEF3C7)
+                            ) {
+                                Text(
+                                    text = syncStatus.convergenceState.uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = if (syncStatus.convergenceState == "Converged") Color(0xFF065F46) else Color(0xFF92400E),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        syncNotice?.let {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                    .padding(8.dp)
+                            ) {
+                                Text(it, color = Color(0xFF047857), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text("Local HLC Clock:", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                                Text(syncStatus.localHlc, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Event Log Sync:", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                                Text("${syncStatus.totalEventsCount - syncStatus.unsyncedEventsCount} / ${syncStatus.totalEventsCount} synced (${syncStatus.unsyncedEventsCount} pending)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        Text("Discovered Subnet Peers (${syncStatus.peers.size}):", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        syncStatus.peers.forEach { peer ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                    .padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Lan, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Column {
+                                        Text(peer.displayName, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                        Text("${peer.ipAddress}:${peer.port}", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFD1FAE5)) {
+                                    Text("SYNCD", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF065F46), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                syncStatus = ErpBridge.triggerLanSync()
+                                syncNotice = "✓ Triggered peer-to-peer sync: All local events converged with subnet peers!"
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Trigger P2P LAN Sync Now", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
+            // ==========================================
+            // 3. Local SQLite Backup & Export / Import (LEDGER-9)
             // ==========================================
             item {
                 Text(

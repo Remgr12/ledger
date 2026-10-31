@@ -73,6 +73,20 @@ fun App() {
                                     fontSize = 9.sp,
                                     color = MaterialTheme.colorScheme.outline
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                val syncInfo = remember { ErpBridge.getSyncStatus() }
+                                Surface(
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+                                    color = if (syncInfo.convergenceState == "Converged") androidx.compose.ui.graphics.Color(0xFFD1FAE5) else androidx.compose.ui.graphics.Color(0xFFFEF3C7)
+                                ) {
+                                    Text(
+                                        text = "${syncInfo.convergenceState} (${syncInfo.connectedPeersCount} peers)",
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (syncInfo.convergenceState == "Converged") androidx.compose.ui.graphics.Color(0xFF065F46) else androidx.compose.ui.graphics.Color(0xFF92400E),
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
                         }
                     ) {

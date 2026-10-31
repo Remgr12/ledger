@@ -30,6 +30,8 @@ fun InventoryLocatorScreen(
     onPrintLabel: (sku: String, name: String) -> Unit = { _, _ -> }
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var reorderNotice by remember { mutableStateOf<String?>(null) }
+    var lowStockAlerts by remember { mutableStateOf(ErpBridge.getLowStockAlerts()) }
     val results = remember(searchQuery) {
         ErpBridge.searchItemLocations(searchQuery)
     }
@@ -62,6 +64,67 @@ fun InventoryLocatorScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Reorder Notification Banner
+            reorderNotice?.let { notice ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                        .padding(12.dp)
+                ) {
+                    Text(notice, color = Color(0xFF047857), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
+
+            // Low Stock Monitoring Alert Banner (LEDGER-13)
+            if (lowStockAlerts.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFF87171)))
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "${lowStockAlerts.size} item(s) below minimum stock threshold!",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF991B1B),
+                                fontSize = 13.sp
+                            )
+                        }
+                        lowStockAlerts.take(2).forEach { alert ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "${alert.sku}: ${alert.currentStock} / ${alert.minStockLevel} ${alert.unit}",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF7F1D1D)
+                                )
+                                Button(
+                                    onClick = {
+                                        val po = ErpBridge.generateReorderPo(alert.itemId)
+                                        if (po != null) {
+                                            reorderNotice = "✓ Draft PO ${po.poNumber} created for ${alert.sku} (${po.grandTotal} USD)"
+                                            lowStockAlerts = ErpBridge.getLowStockAlerts()
+                                        }
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                                ) {
+                                    Text("Reorder PO", fontSize = 11.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             // Search Input Field
             OutlinedTextField(
                 value = searchQuery,
@@ -281,11 +344,12 @@ fun ItemLocationCard(
                 }
             }
 
-            // Lot/Serial metadata if present
-            if (match.lotNumber != null || match.serialNumber != null) {
+            // Lot/Serial and Quarantine/Expiration metadata if present (LEDGER-15)
+            if (match.lotNumber != null || match.serialNumber != null || match.lotExpirationDate != null || match.lotQuarantineStatus != null) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     match.lotNumber?.let {
                         AssistChip(
@@ -294,13 +358,47 @@ fun ItemLocationCard(
                             leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null, modifier = Modifier.size(14.dp)) }
                         )
                     }
-                    match.serialNumber?.let {
+                    match.lotExpirationDate?.let { exp ->
+                        val isExpiring = match.isExpiredOrExpiring
                         AssistChip(
                             onClick = {},
-                            label = { Text("SN: $it", fontSize = 11.sp) },
-                            leadingIcon = { Icon(Icons.Default.ConfirmationNumber, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                            label = { Text("Exp: $exp", fontSize = 11.sp, color = if (isExpiring) Color(0xFFDC2626) else Color.Unspecified) },
+                            leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp), tint = if (isExpiring) Color(0xFFDC2626) else LocalContentColor.current) }
                         )
                     }
+                    match.lotQuarantineStatus?.let { status ->
+                        val isQuarantine = status.equals("quarantine", ignoreCase = true)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isQuarantine) Color(0xFFFDE68A) else Color(0xFFD1FAE5)
+                        ) {
+                            Text(
+                                text = status.uppercase(),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isQuarantine) Color(0xFF92400E) else Color(0xFF065F46),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Low stock warning banner inside card
+            if (match.isLowStock) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFFFEF2F2))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        "⚠️ Stock (${match.quantity}) is below minimum threshold (${match.minStockLevel} ${match.unit})",
+                        color = Color(0xFF991B1B),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 
@@ -313,9 +411,23 @@ fun ItemLocationCard(
             // Action row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (match.isLowStock) {
+                    Button(
+                        onClick = {
+                            ErpBridge.generateReorderPo(match.itemId)
+                        },
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                    ) {
+                        Text("Reorder PO", fontSize = 11.sp)
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
+                }
+
                 OutlinedButton(
                     onClick = onPrintLabel,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)

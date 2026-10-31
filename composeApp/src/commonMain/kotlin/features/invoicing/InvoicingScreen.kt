@@ -38,6 +38,8 @@ fun InvoicingScreen() {
     }
 
     var notificationMessage by remember { mutableStateOf<String?>(null) }
+    var selectedInvoiceForPdf by remember { mutableStateOf<InvoiceItemUi?>(null) }
+    var pdfPreviewInfo by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -123,23 +125,78 @@ fun InvoicingScreen() {
                             ) {
                                 Text("${inv.lineCount} item line(s) • Total: ${inv.totalAmount}", fontWeight = FontWeight.SemiBold)
 
-                                if (inv.status == "Draft") {
-                                    Button(
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedButton(
                                         onClick = {
-                                            inv.status = "Finalized"
-                                            notificationMessage = "✓ Invoice ${inv.invoiceNumber} finalized: mod-inventory automatically deducted stock from primary bins!"
+                                            selectedInvoiceForPdf = inv
+                                            val pdfBytes = org.erp.ledger.core.ErpBridge.generateInvoicePdf(inv.id)
+                                            pdfPreviewInfo = "Pure-Vector PDF-1.4 Generated (${pdfBytes.size} bytes)\nIncludes EPC QR GiroCode with SEPA payload and fixed-point Decimal math."
                                         },
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                                     ) {
-                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Finalize & Pick Stock", fontSize = 12.sp)
+                                        Text("Vector PDF", fontSize = 12.sp)
+                                    }
+
+                                    if (inv.status == "Draft") {
+                                        Button(
+                                            onClick = {
+                                                inv.status = "Finalized"
+                                                notificationMessage = "✓ Invoice ${inv.invoiceNumber} finalized: mod-inventory automatically deducted stock from primary bins!"
+                                            },
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Finalize & Pick Stock", fontSize = 12.sp)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
+
+            selectedInvoiceForPdf?.let { inv ->
+                AlertDialog(
+                    onDismissRequest = { selectedInvoiceForPdf = null },
+                    title = { Text("Vector PDF & EPC QR: ${inv.invoiceNumber}") },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(pdfPreviewInfo ?: "Generating vector PDF...")
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text("Customer: ${inv.customerName}", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Total Amount: ${inv.totalAmount}", fontSize = 13.sp)
+                                    Text("Standard: EPC QR GiroCode / SEPA 002", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            val dest = "/tmp/${inv.invoiceNumber}.pdf"
+                            org.erp.ledger.core.ErpBridge.exportInvoicePdfToFile(inv.id, dest)
+                            notificationMessage = "✓ Exported vector invoice PDF to $dest"
+                            selectedInvoiceForPdf = null
+                        }) {
+                            Text("Export to File")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { selectedInvoiceForPdf = null }) {
+                            Text("Close")
+                        }
+                    }
+                )
             }
         }
     }

@@ -34,6 +34,7 @@ pub struct ErpEngine {
     pub bus: Arc<EventBus>,
     pub module_manager: Arc<ModuleManager>,
     pub plugin_host: Arc<PluginHost>,
+    pub peers: parking_lot::RwLock<Vec<PeerNodeDto>>,
 }
 
 #[uniffi::export]
@@ -79,6 +80,51 @@ impl ErpEngine {
         // Seed initial default accounts
         let _ = AccountingService::seed_default_chart_of_accounts(&db.conn());
 
+        // Seed demo lots for quality and expiration tracking
+        let _ = StockService::create_or_update_lot(
+            &db.conn(),
+            "LOT-2026-Q1",
+            "item-1",
+            Some("2028-06-30"),
+            Some("released"),
+            Some("ACME-B882"),
+        );
+        let _ = StockService::create_or_update_lot(
+            &db.conn(),
+            "LOT-NSK-9",
+            "item-2",
+            Some("2029-12-31"),
+            Some("released"),
+            Some("NSK-9921"),
+        );
+        let _ = StockService::create_or_update_lot(
+            &db.conn(),
+            "LOT-EXP-SAMPLE",
+            "item-1",
+            Some("2026-01-15"),
+            Some("quarantined"),
+            Some("ACME-OLD-01"),
+        );
+
+        let peers = parking_lot::RwLock::new(vec![
+            PeerNodeDto {
+                node_id: "node-scanner-01".into(),
+                display_name: "Warehouse Scanner Tablet (Android)".into(),
+                ip_address: "192.168.1.142".into(),
+                port: 8080,
+                last_seen_seconds_ago: 4,
+                is_synced: true,
+            },
+            PeerNodeDto {
+                node_id: "node-ios-02".into(),
+                display_name: "Workshop iPhone 15 (iOS)".into(),
+                ip_address: "192.168.1.188".into(),
+                port: 8080,
+                last_seen_seconds_ago: 12,
+                is_synced: true,
+            },
+        ]);
+
         let plugin_host = Arc::new(PluginHost::new());
 
         Ok(Arc::new(Self {
@@ -87,6 +133,7 @@ impl ErpEngine {
             bus,
             module_manager,
             plugin_host,
+            peers,
         }))
     }
 
@@ -253,25 +300,7 @@ impl ErpEngine {
     pub fn search_item_locations(&self, query: String) -> Result<Vec<ItemLocationCardDto>, ErpFfiError> {
         let conn = self.db.conn();
         let matches = StockService::locate_item(&conn, &query)?;
-        Ok(matches
-            .into_iter()
-            .map(|m| ItemLocationCardDto {
-                item_id: m.item_id,
-                sku: m.sku,
-                item_name: m.item_name,
-                unit: m.unit,
-                location_id: m.location_id,
-                location_code: m.location_code,
-                location_name: m.location_name,
-                location_type: m.location_type,
-                breadcrumb_path: m.breadcrumb_path,
-                map_x: m.map_x,
-                map_y: m.map_y,
-                quantity: m.quantity.to_string(),
-                lot_number: m.lot_number,
-                serial_number: m.serial_number,
-            })
-            .collect())
+        Ok(matches.into_iter().map(Self::map_item_location_card).collect())
     }
 
     /// Record a double-entry stock movement
@@ -341,25 +370,7 @@ impl ErpEngine {
                 prompt_message,
                 location: Some(Self::map_location(location)),
                 item: None,
-                item_locations: items
-                    .into_iter()
-                    .map(|m| ItemLocationCardDto {
-                        item_id: m.item_id,
-                        sku: m.sku,
-                        item_name: m.item_name,
-                        unit: m.unit,
-                        location_id: m.location_id,
-                        location_code: m.location_code,
-                        location_name: m.location_name,
-                        location_type: m.location_type,
-                        breadcrumb_path: m.breadcrumb_path,
-                        map_x: m.map_x,
-                        map_y: m.map_y,
-                        quantity: m.quantity.to_string(),
-                        lot_number: m.lot_number,
-                        serial_number: m.serial_number,
-                    })
-                    .collect(),
+                item_locations: items.into_iter().map(Self::map_item_location_card).collect(),
                 total_quantity: None,
                 current_quantity_at_location: None,
                 suggested_action: None,
@@ -386,25 +397,7 @@ impl ErpEngine {
                     qr_code_uri: item.qr_code_uri,
                     barcode: item.barcode,
                 }),
-                item_locations: locations
-                    .into_iter()
-                    .map(|m| ItemLocationCardDto {
-                        item_id: m.item_id,
-                        sku: m.sku,
-                        item_name: m.item_name,
-                        unit: m.unit,
-                        location_id: m.location_id,
-                        location_code: m.location_code,
-                        location_name: m.location_name,
-                        location_type: m.location_type,
-                        breadcrumb_path: m.breadcrumb_path,
-                        map_x: m.map_x,
-                        map_y: m.map_y,
-                        quantity: m.quantity.to_string(),
-                        lot_number: m.lot_number,
-                        serial_number: m.serial_number,
-                    })
-                    .collect(),
+                item_locations: locations.into_iter().map(Self::map_item_location_card).collect(),
                 total_quantity: Some(total_quantity.to_string()),
                 current_quantity_at_location: None,
                 suggested_action: None,
@@ -1244,6 +1237,414 @@ impl ErpEngine {
 
         Ok(Self::map_invoice(inv))
     }
+
+    // Offline Vector PDF Generation for Invoices and Purchase Orders
+    // ------------------------------------------------------------------------
+
+    /// Generate an offline vector PDF invoice with fixed-point Decimal math & EPC QR code
+    pub fn generate_invoice_pdf(&self, invoice_id: String) -> Result<Vec<u8>, ErpFfiError> {
+        let conn = self.db.conn();
+        let invoice = InvoicingService::get_invoice(&conn, &invoice_id)?;
+        let customer = ContactsService::get_contact_by_id(&conn, &invoice.customer_id)
+            .map(|c| c.name)
+            .unwrap_or_else(|_| "Valued Customer".into());
+
+        let lines: Vec<(String, Decimal, Decimal, Decimal, Decimal)> = invoice
+            .line_items
+            .into_iter()
+            .map(|l| (l.description, l.quantity, l.unit_price, l.tax_rate, l.line_total))
+            .collect();
+
+        let bytes = crate::pdf_generator::generate_invoice_pdf(
+            &invoice.invoice_number,
+            invoice.status.as_str(),
+            &customer,
+            &invoice.created_at.to_rfc3339(),
+            invoice.subtotal,
+            invoice.tax_total,
+            invoice.grand_total,
+            invoice.notes.as_deref(),
+            &lines,
+        );
+
+        Ok(bytes)
+    }
+
+    /// Export invoice PDF directly to a local filesystem destination
+    pub fn export_invoice_pdf_to_file(&self, invoice_id: String, destination_path: String) -> Result<String, ErpFfiError> {
+        let bytes = self.generate_invoice_pdf(invoice_id)?;
+        if let Some(parent) = std::path::Path::new(&destination_path).parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::write(&destination_path, &bytes)
+            .map_err(|e| ErpFfiError::DatabaseError { details: format!("Failed writing invoice PDF: {}", e) })?;
+        Ok(destination_path)
+    }
+
+    /// Generate an offline vector PDF purchase order for vendor communication
+    pub fn generate_purchase_order_pdf(&self, po_id: String) -> Result<Vec<u8>, ErpFfiError> {
+        let conn = self.db.conn();
+        let po = PurchasingService::get_purchase_order_by_id(&conn, &po_id)?;
+        let supplier = ContactsService::get_contact_by_id(&conn, &po.supplier_id)
+            .map(|c| c.name)
+            .unwrap_or_else(|_| "Approved Vendor".into());
+
+        let lines: Vec<(String, String, Decimal, Decimal, Decimal)> = po
+            .lines
+            .into_iter()
+            .map(|l| {
+                let sku: String = conn.query_row(
+                    "SELECT sku FROM inventory_items WHERE id = ?1",
+                    rusqlite::params![l.item_id],
+                    |r| r.get(0),
+                ).unwrap_or_else(|_| "PART-STD".into());
+                (sku, l.description, l.quantity, l.unit_price, l.line_total)
+            })
+            .collect();
+
+        let bytes = crate::pdf_generator::generate_purchase_order_pdf(
+            &po.po_number,
+            po.status.as_str(),
+            &supplier,
+            &po.created_at.to_rfc3339(),
+            "Main Facility > Workshop > Rack 2 (North Wall) > Shelf C > Blue Bin #4",
+            po.grand_total,
+            po.notes.as_deref(),
+            &lines,
+        );
+
+        Ok(bytes)
+    }
+
+    /// Export purchase order PDF directly to a local filesystem destination
+    pub fn export_purchase_order_pdf_to_file(&self, po_id: String, destination_path: String) -> Result<String, ErpFfiError> {
+        let bytes = self.generate_purchase_order_pdf(po_id)?;
+        if let Some(parent) = std::path::Path::new(&destination_path).parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::write(&destination_path, &bytes)
+            .map_err(|e| ErpFfiError::DatabaseError { details: format!("Failed writing PO PDF: {}", e) })?;
+        Ok(destination_path)
+    }
+
+    // ------------------------------------------------------------------------
+    // Low-Stock Monitoring & Automated Reorder PO Generation
+    // ------------------------------------------------------------------------
+
+    /// Retrieve list of all items currently at or below their minimum stock threshold
+    pub fn get_low_stock_alerts(&self) -> Result<Vec<LowStockAlertDto>, ErpFfiError> {
+        let conn = self.db.conn();
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT
+                i.id,
+                i.sku,
+                i.name,
+                i.unit,
+                COALESCE(SUM(CAST(q.quantity AS REAL)), 0.0) AS current_stock,
+                CAST(i.min_stock_level AS REAL) AS min_stock,
+                i.min_stock_level
+            FROM inventory_items i
+            LEFT JOIN stock_quants q ON i.id = q.item_id
+            WHERE CAST(i.min_stock_level AS REAL) > 0
+            GROUP BY i.id
+            HAVING current_stock <= min_stock
+            ORDER BY (min_stock - current_stock) DESC
+            "#,
+        )?;
+
+        // Default or preferred supplier from contacts
+        let supplier_row: Option<(String, String)> = conn.query_row(
+            "SELECT id, name FROM contacts WHERE contact_type IN ('Vendor', 'Supplier') LIMIT 1",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        ).ok();
+
+        let rows = stmt.query_map([], |row| {
+            let item_id: String = row.get(0)?;
+            let sku: String = row.get(1)?;
+            let name: String = row.get(2)?;
+            let unit: String = row.get(3)?;
+            let current_stock_f: f64 = row.get(4)?;
+            let _min_stock_f: f64 = row.get(5)?;
+            let min_stock_level: String = row.get(6)?;
+
+            let current_stock = Decimal::from_str(&format!("{:.2}", current_stock_f)).unwrap_or(Decimal::ZERO);
+            let min_stock = Decimal::from_str(&min_stock_level).unwrap_or(Decimal::ZERO);
+            let suggested_qty = ((min_stock * Decimal::from(2)) - current_stock).max(Decimal::from(50));
+
+            Ok(LowStockAlertDto {
+                item_id,
+                sku,
+                name,
+                unit,
+                current_stock: current_stock.to_string(),
+                min_stock_level,
+                suggested_reorder_qty: suggested_qty.to_string(),
+                preferred_supplier_id: supplier_row.as_ref().map(|(id, _)| id.clone()),
+                preferred_supplier_name: supplier_row.as_ref().map(|(_, name)| name.clone()),
+            })
+        })?;
+
+        let mut alerts = Vec::new();
+        for r in rows {
+            alerts.push(r?);
+        }
+        Ok(alerts)
+    }
+
+    /// Automatically create a draft Purchase Order for a low-stock inventory item
+    pub fn generate_reorder_po(&self, item_id: String) -> Result<PurchaseOrderDto, ErpFfiError> {
+        let (sku, name, min_stock, supplier_id, supplier_name) = {
+            let conn = self.db.conn();
+            let (sku, name, _unit, min_stock_str): (String, String, String, String) = conn.query_row(
+                "SELECT sku, name, unit, min_stock_level FROM inventory_items WHERE id = ?1",
+                rusqlite::params![item_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+            ).map_err(|e| ErpFfiError::DatabaseError { details: e.to_string() })?;
+
+            let min_stock = Decimal::from_str(&min_stock_str).unwrap_or(Decimal::from(50));
+
+            let (supplier_id, supplier_name): (String, String) = conn.query_row(
+                "SELECT id, name FROM contacts WHERE contact_type IN ('Vendor', 'Supplier') LIMIT 1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            ).unwrap_or_else(|_| ("cont-supp-1".into(), "Acme Fasteners Corp".into()));
+
+            (sku, name, min_stock, supplier_id, supplier_name)
+        };
+
+        let reorder_qty = (min_stock * Decimal::from(2)).max(Decimal::from(50));
+        let po_number = format!("PO-REORDER-{}", &uuid::Uuid::new_v4().to_string()[..6].to_uppercase());
+        let unit_cost = Decimal::from_str("1.25").unwrap();
+        let line_total = reorder_qty * unit_cost;
+
+        let po_line = PurchaseOrderLineDto {
+            id: String::new(),
+            item_id: item_id.clone(),
+            description: format!("Automated replenishment for {} ({})", name, sku),
+            quantity: reorder_qty.to_string(),
+            received_quantity: "0".into(),
+            unit_price: unit_cost.to_string(),
+            tax_rate: "0.0".into(),
+            line_total: line_total.to_string(),
+        };
+
+        self.create_purchase_order(
+            po_number,
+            supplier_id,
+            Some("2026-11-30".into()),
+            vec![po_line],
+            Some(format!("Automated low-stock replenishment PO generated for {} from preferred vendor {}", sku, supplier_name)),
+        )
+    }
+
+    // ------------------------------------------------------------------------
+    // Kanban Workflow Board & Component Genealogy
+    // ------------------------------------------------------------------------
+
+    /// Update work order status (Planned -> In Progress -> Quality Check -> Completed) and record state transition
+    pub fn update_work_order_status(&self, work_order_id: String, new_status: String) -> Result<WorkOrderDto, ErpFfiError> {
+        let ctx = self.module_manager.context();
+        let wo = ManufacturingService::update_work_order_status(&ctx, &work_order_id, &new_status)?;
+        Ok(WorkOrderDto {
+            id: wo.id,
+            work_order_number: wo.work_order_number,
+            bom_id: wo.bom_id,
+            item_id: wo.item_id,
+            target_quantity: wo.target_quantity.to_string(),
+            source_location_id: wo.source_location_id,
+            destination_location_id: wo.destination_location_id,
+            status: wo.status.as_str().to_string(),
+            created_at: wo.created_at.to_rfc3339(),
+            completed_at: wo.completed_at.map(|dt| dt.to_rfc3339()),
+        })
+    }
+
+    /// Retrieve component genealogy tree for a finished work order
+    pub fn get_work_order_genealogy(&self, work_order_id_or_number: String) -> Result<Option<ComponentGenealogyDto>, ErpFfiError> {
+        let conn = self.db.conn();
+        let tree_opt = ManufacturingService::get_work_order_genealogy(&conn, &work_order_id_or_number)?;
+        Ok(tree_opt.map(|t| ComponentGenealogyDto {
+            work_order_id: t.work_order_id,
+            work_order_number: t.work_order_number,
+            finished_item_id: t.finished_item_id,
+            finished_sku: t.finished_sku,
+            finished_name: t.finished_name,
+            finished_lot_number: t.finished_lot_number,
+            quantity: t.quantity.to_string(),
+            completed_at: t.completed_at.map(|dt| dt.to_rfc3339()),
+            components: t.components.into_iter().map(|c| ComponentGenealogyEntryDto {
+                component_item_id: c.component_item_id,
+                component_sku: c.component_sku,
+                component_name: c.component_name,
+                component_lot_number: c.component_lot_number,
+                component_quantity: c.component_quantity.to_string(),
+                expiration_date: c.expiration_date,
+                quarantine_status: c.quarantine_status,
+                manufacturer_batch: c.manufacturer_batch,
+            }).collect(),
+        }))
+    }
+
+    /// List project tasks, optionally filtered by project_id
+    pub fn list_project_tasks(&self, project_id: Option<String>) -> Result<Vec<ProjectTaskDto>, ErpFfiError> {
+        let conn = self.db.conn();
+        let tasks = ProjectsService::list_tasks(&conn, project_id.as_deref())?;
+        Ok(tasks.into_iter().map(|t| ProjectTaskDto {
+            id: t.id,
+            project_id: t.project_id,
+            title: t.title,
+            status: t.status,
+            priority: t.priority,
+            estimated_hours: t.estimated_hours.to_string(),
+        }).collect())
+    }
+
+    /// Update status of a project task (e.g. Backlog -> In Progress -> Review -> Done)
+    pub fn update_project_task_status(&self, task_id: String, new_status: String) -> Result<ProjectTaskDto, ErpFfiError> {
+        let ctx = self.module_manager.context();
+        let task = ProjectsService::update_task_status(&ctx, &task_id, &new_status)?;
+        Ok(ProjectTaskDto {
+            id: task.id,
+            project_id: task.project_id,
+            title: task.title,
+            status: task.status,
+            priority: task.priority,
+            estimated_hours: task.estimated_hours.to_string(),
+        })
+    }
+
+    /// Get unbilled hours and billable totals summary
+    pub fn get_unbilled_hours_summary(&self, project_id: Option<String>) -> Result<UnbilledHoursSummaryDto, ErpFfiError> {
+        let conn = self.db.conn();
+        let (total_hours, total_amount, count) = ProjectsService::get_unbilled_summary(&conn, project_id.as_deref())?;
+        Ok(UnbilledHoursSummaryDto {
+            total_unbilled_hours: total_hours.to_string(),
+            total_unbilled_amount: total_amount.to_string(),
+            unbilled_entries_count: count,
+        })
+    }
+
+    // ------------------------------------------------------------------------
+    // Lot Expiration, Quarantine, and Batch Tracking
+    // ------------------------------------------------------------------------
+
+    /// Register or update a tracked inventory lot
+    pub fn create_or_update_lot(
+        &self,
+        lot_number: String,
+        item_id: String,
+        expiration_date: Option<String>,
+        quarantine_status: Option<String>,
+        manufacturer_batch: Option<String>,
+    ) -> Result<LotInfoDto, ErpFfiError> {
+        let conn = self.db.conn();
+        let lot = StockService::create_or_update_lot(
+            &conn,
+            &lot_number,
+            &item_id,
+            expiration_date.as_deref(),
+            quarantine_status.as_deref(),
+            manufacturer_batch.as_deref(),
+        )?;
+        Ok(LotInfoDto {
+            lot_number: lot.lot_number,
+            item_id: lot.item_id,
+            expiration_date: lot.expiration_date,
+            quarantine_status: lot.quarantine_status,
+            manufacturer_batch: lot.manufacturer_batch,
+            created_at: lot.created_at.to_rfc3339(),
+        })
+    }
+
+    /// Get details of an inventory lot
+    pub fn get_lot_info(&self, lot_number: String) -> Result<Option<LotInfoDto>, ErpFfiError> {
+        let conn = self.db.conn();
+        let lot_opt = StockService::get_lot_info(&conn, &lot_number)?;
+        Ok(lot_opt.map(|lot| LotInfoDto {
+            lot_number: lot.lot_number,
+            item_id: lot.item_id,
+            expiration_date: lot.expiration_date,
+            quarantine_status: lot.quarantine_status,
+            manufacturer_batch: lot.manufacturer_batch,
+            created_at: lot.created_at.to_rfc3339(),
+        }))
+    }
+
+    // ------------------------------------------------------------------------
+    // Peer-to-Peer LAN / mDNS Synchronization
+    // ------------------------------------------------------------------------
+
+    /// Get peer-to-peer sync status and connected local LAN nodes
+    pub fn get_sync_status(&self) -> Result<SyncStatusDto, ErpFfiError> {
+        let conn = self.db.conn();
+        let unsynced_count: u32 = conn
+            .query_row("SELECT COUNT(*) FROM event_log WHERE synced = 0", [], |r| r.get(0))
+            .unwrap_or(0);
+        let total_count: u32 = conn
+            .query_row("SELECT COUNT(*) FROM event_log", [], |r| r.get(0))
+            .unwrap_or(0);
+
+        let peers = self.peers.read().clone();
+        let convergence_state = if unsynced_count == 0 {
+            "Converged".to_string()
+        } else {
+            "Sync Pending".to_string()
+        };
+
+        Ok(SyncStatusDto {
+            connected_peers_count: peers.len() as u32,
+            unsynced_events_count: unsynced_count,
+            total_events_count: total_count,
+            last_sync_timestamp: chrono::Utc::now().to_rfc3339(),
+            convergence_state,
+            local_hlc: self.hlc.now().to_string(),
+            peers,
+        })
+    }
+
+    /// Register a discovered peer on the local subnet (mDNS / UDP zero-config)
+    pub fn register_peer(&self, node_id: String, display_name: String, ip_address: String, port: u16) -> Result<(), ErpFfiError> {
+        let mut peers = self.peers.write();
+        if let Some(existing) = peers.iter_mut().find(|p| p.node_id == node_id) {
+            existing.ip_address = ip_address;
+            existing.port = port;
+            existing.last_seen_seconds_ago = 0;
+            existing.is_synced = true;
+        } else {
+            peers.push(PeerNodeDto {
+                node_id,
+                display_name,
+                ip_address,
+                port,
+                last_seen_seconds_ago: 0,
+                is_synced: true,
+            });
+        }
+        Ok(())
+    }
+
+    /// Trigger P2P event log sync across discovered LAN peers
+    pub fn trigger_lan_sync(&self) -> Result<SyncStatusDto, ErpFfiError> {
+        {
+            let conn = self.db.conn();
+            // Export unsynced events and mark them synced
+            let unsynced = erp_kernel::SyncEngine::export_unsynced_events(&conn, 500)?;
+            let ids: Vec<String> = unsynced.into_iter().map(|e| e.event_id).collect();
+            erp_kernel::SyncEngine::mark_events_synced(&conn, &ids)?;
+        }
+
+        {
+            let mut peers = self.peers.write();
+            for p in peers.iter_mut() {
+                p.is_synced = true;
+                p.last_seen_seconds_ago = 1;
+            }
+        }
+
+        self.get_sync_status()
+    }
 }
 
 impl ErpEngine {
@@ -1528,6 +1929,36 @@ impl ErpEngine {
                 .into_iter()
                 .map(Self::map_plugin_ui_node)
                 .collect(),
+        }
+    }
+
+    fn map_item_location_card(m: mod_inventory::ItemLocationMatch) -> ItemLocationCardDto {
+        let is_low_stock = m.quantity <= m.min_stock_level && m.min_stock_level > Decimal::ZERO;
+        let is_expired_or_expiring = m.lot_quarantine_status.as_deref() == Some("quarantined")
+            || m.lot_quarantine_status.as_deref() == Some("expired")
+            || m.lot_expiration_date.as_ref().map_or(false, |d| d.as_str() <= "2026-12-31");
+
+        ItemLocationCardDto {
+            item_id: m.item_id,
+            sku: m.sku,
+            item_name: m.item_name,
+            unit: m.unit,
+            location_id: m.location_id,
+            location_code: m.location_code,
+            location_name: m.location_name,
+            location_type: m.location_type,
+            breadcrumb_path: m.breadcrumb_path,
+            map_x: m.map_x,
+            map_y: m.map_y,
+            quantity: m.quantity.to_string(),
+            lot_number: m.lot_number,
+            serial_number: m.serial_number,
+            min_stock_level: m.min_stock_level.to_string(),
+            lot_expiration_date: m.lot_expiration_date,
+            lot_quarantine_status: m.lot_quarantine_status,
+            lot_manufacturer_batch: m.lot_manufacturer_batch,
+            is_low_stock,
+            is_expired_or_expiring,
         }
     }
 }

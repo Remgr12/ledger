@@ -28,8 +28,10 @@ pub struct BillOfMaterials {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WorkOrderStatus {
+    Planned,
     Draft,
     InProgress,
+    QualityCheck,
     Completed,
     Cancelled,
 }
@@ -37,8 +39,10 @@ pub enum WorkOrderStatus {
 impl WorkOrderStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
+            Self::Planned => "Planned",
             Self::Draft => "Draft",
             Self::InProgress => "In Progress",
+            Self::QualityCheck => "Quality Check",
             Self::Completed => "Completed",
             Self::Cancelled => "Cancelled",
         }
@@ -50,12 +54,40 @@ impl FromStr for WorkOrderStatus {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s.trim().to_lowercase().as_str() {
+            "draft" => Self::Draft,
+            "planned" => Self::Planned,
             "in progress" | "inprogress" => Self::InProgress,
+            "quality check" | "qualitycheck" | "qc" => Self::QualityCheck,
             "completed" => Self::Completed,
             "cancelled" => Self::Cancelled,
-            _ => Self::Draft,
+            _ => Self::Planned,
         })
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ComponentGenealogyEntry {
+    pub component_item_id: String,
+    pub component_sku: String,
+    pub component_name: String,
+    pub component_lot_number: Option<String>,
+    pub component_quantity: Decimal,
+    pub expiration_date: Option<String>,
+    pub quarantine_status: Option<String>,
+    pub manufacturer_batch: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkOrderGenealogyTree {
+    pub work_order_id: String,
+    pub work_order_number: String,
+    pub finished_item_id: String,
+    pub finished_sku: String,
+    pub finished_name: String,
+    pub finished_lot_number: String,
+    pub quantity: Decimal,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub components: Vec<ComponentGenealogyEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

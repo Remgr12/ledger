@@ -24,6 +24,8 @@ import uniffi.erp_ffi.PurchaseReceiptLineDto
 fun PurchasingScreen() {
     var purchaseOrders by remember { mutableStateOf(ErpBridge.listPurchaseOrders()) }
     var showReceiveDialog by remember { mutableStateOf<PurchaseOrderDto?>(null) }
+    var selectedPoForPdf by remember { mutableStateOf<PurchaseOrderDto?>(null) }
+    var pdfExportNotice by remember { mutableStateOf<String?>(null) }
     val locations = remember { ErpBridge.getStorageLocations() }
     var selectedLocationId by remember { mutableStateOf(locations.firstOrNull()?.id ?: "loc-bin-4") }
 
@@ -59,6 +61,18 @@ fun PurchasingScreen() {
             }
         }
 
+        pdfExportNotice?.let {
+            Spacer(modifier = Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF10B981).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                    .padding(10.dp)
+            ) {
+                Text(it, color = Color(0xFF047857), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Orders List
@@ -69,10 +83,39 @@ fun PurchasingScreen() {
             items(purchaseOrders) { po ->
                 PurchaseOrderCard(
                     po = po,
-                    onReceive = { showReceiveDialog = po }
+                    onReceive = { showReceiveDialog = po },
+                    onExportPdf = { selectedPoForPdf = po }
                 )
             }
         }
+    }
+
+    selectedPoForPdf?.let { po ->
+        AlertDialog(
+            onDismissRequest = { selectedPoForPdf = null },
+            title = { Text("Vector PO PDF: ${po.poNumber}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Offline Pure-Vector PDF-1.4 generation with item lines and vendor reference.")
+                    Text("Total: ${po.grandTotal} USD • Status: ${po.status}", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val dest = "/tmp/${po.poNumber}.pdf"
+                    ErpBridge.exportPurchaseOrderPdfToFile(po.id, dest)
+                    pdfExportNotice = "✓ Successfully generated and exported ${po.poNumber} to $dest"
+                    selectedPoForPdf = null
+                }) {
+                    Text("Export Vector PDF")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedPoForPdf = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Goods Receipt Dialog
@@ -132,7 +175,11 @@ fun PurchasingScreen() {
 }
 
 @Composable
-fun PurchaseOrderCard(po: PurchaseOrderDto, onReceive: () -> Unit) {
+fun PurchaseOrderCard(
+    po: PurchaseOrderDto,
+    onReceive: () -> Unit,
+    onExportPdf: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -183,7 +230,7 @@ fun PurchaseOrderCard(po: PurchaseOrderDto, onReceive: () -> Unit) {
                 Text(text = it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -197,14 +244,25 @@ fun PurchaseOrderCard(po: PurchaseOrderDto, onReceive: () -> Unit) {
                     fontSize = 14.sp
                 )
 
-                if (po.status != "Received") {
-                    FilledTonalButton(
-                        onClick = onReceive,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = onExportPdf,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Default.MoveToInbox, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Receive Goods", fontSize = 12.sp)
+                        Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Vector PDF", fontSize = 12.sp)
+                    }
+
+                    if (po.status != "Received") {
+                        FilledTonalButton(
+                            onClick = onReceive,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.MoveToInbox, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Receive Goods", fontSize = 12.sp)
+                        }
                     }
                 }
             }

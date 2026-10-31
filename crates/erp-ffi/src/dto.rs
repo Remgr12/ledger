@@ -70,6 +70,12 @@ pub struct ItemLocationCardDto {
     pub quantity: String,
     pub lot_number: Option<String>,
     pub serial_number: Option<String>,
+    pub min_stock_level: String,
+    pub lot_expiration_date: Option<String>,
+    pub lot_quarantine_status: Option<String>,
+    pub lot_manufacturer_batch: Option<String>,
+    pub is_low_stock: bool,
+    pub is_expired_or_expiring: bool,
 }
 
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -354,4 +360,80 @@ pub struct TimesheetEntryDto {
     pub is_invoiced: bool,
     pub invoice_id: Option<String>,
     pub description: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct LowStockAlertDto {
+    pub item_id: String,
+    pub sku: String,
+    pub name: String,
+    pub unit: String,
+    pub current_stock: String,
+    pub min_stock_level: String,
+    pub suggested_reorder_qty: String,
+    pub preferred_supplier_id: Option<String>,
+    pub preferred_supplier_name: Option<String>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct PeerNodeDto {
+    pub node_id: String,
+    pub display_name: String,
+    pub ip_address: String,
+    pub port: u16,
+    pub last_seen_seconds_ago: u64,
+    pub is_synced: bool,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct SyncStatusDto {
+    pub connected_peers_count: u32,
+    pub unsynced_events_count: u32,
+    pub total_events_count: u32,
+    pub last_sync_timestamp: String,
+    pub convergence_state: String,
+    pub local_hlc: String,
+    pub peers: Vec<PeerNodeDto>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct UnbilledHoursSummaryDto {
+    pub total_unbilled_hours: String,
+    pub total_unbilled_amount: String,
+    pub unbilled_entries_count: u32,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct LotInfoDto {
+    pub lot_number: String,
+    pub item_id: String,
+    pub expiration_date: Option<String>,
+    pub quarantine_status: String,
+    pub manufacturer_batch: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct ComponentGenealogyEntryDto {
+    pub component_item_id: String,
+    pub component_sku: String,
+    pub component_name: String,
+    pub component_lot_number: Option<String>,
+    pub component_quantity: String,
+    pub expiration_date: Option<String>,
+    pub quarantine_status: Option<String>,
+    pub manufacturer_batch: Option<String>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct ComponentGenealogyDto {
+    pub work_order_id: String,
+    pub work_order_number: String,
+    pub finished_item_id: String,
+    pub finished_sku: String,
+    pub finished_name: String,
+    pub finished_lot_number: String,
+    pub quantity: String,
+    pub completed_at: Option<String>,
+    pub components: Vec<ComponentGenealogyEntryDto>,
 }

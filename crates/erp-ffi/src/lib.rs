@@ -3,10 +3,12 @@ uniffi::setup_scaffolding!();
 pub mod dto;
 pub mod engine;
 pub mod errors;
+pub mod pdf_generator;
 
 pub use dto::*;
 pub use engine::{init_erp, ErpEngine};
 pub use errors::ErpFfiError;
+pub use pdf_generator::*;
 
 #[cfg(test)]
 mod tests {
@@ -342,5 +344,329 @@ mod tests {
         assert_eq!(ui_nodes[0].node_kind, "Badge");
         assert_eq!(ui_nodes[0].title_or_label, "Supplier Verified: ISO-9001");
         assert_eq!(ui_nodes[0].color_hex.as_deref(), Some("#10B981"));
+    }
+
+    #[test]
+    fn test_v0_0_3_core_capabilities() {
+        println!(">>> STARTING test_v0_0_3_core_capabilities");
+        let engine = init_erp(":memory:".to_string()).expect("init erp");
+        for mod_id in [
+            "mod-accounting",
+            "mod-invoicing",
+            "mod-purchasing",
+            "mod-manufacturing",
+            "mod-projects",
+        ] {
+            engine.set_module_enabled(mod_id.to_string(), true).expect("enable module");
+        }
+        println!(">>> Modules enabled");
+
+        // 1. Vector PDF Generation (LEDGER-11)
+        let contact = engine
+            .create_contact(
+                "Customer".into(),
+                "Apex Robotics Inc".into(),
+                Some("billing@apexrobotics.com".into()),
+                None,
+                None,
+                None,
+            )
+            .expect("create contact");
+        println!(">>> Contact created");
+
+        let inv = mod_invoicing::InvoicingService::create_invoice(
+            &engine.module_manager.context(),
+            "INV-2026-999",
+            &contact.id,
+            vec![(
+                None,
+                "Precision CNC Milled Aluminum Bracket".into(),
+                Decimal::from(4),
+                Decimal::from(150),
+                Decimal::from_str("0.20").unwrap(),
+            )],
+            Some("Net 30 SEPA payment transfer".into()),
+        )
+        .expect("create invoice");
+        println!(">>> Invoice created");
+
+        let pdf_bytes = engine.generate_invoice_pdf(inv.id.clone()).expect("generate invoice pdf");
+        println!(">>> PDF generated: {} bytes", pdf_bytes.len());
+        let pdf_str = String::from_utf8_lossy(&pdf_bytes);
+        assert!(pdf_str.starts_with("%PDF-1.4"));
+        assert!(pdf_str.ends_with("%%EOF\n"));
+        assert!(pdf_str.contains("INV-2026-999"));
+        assert!(pdf_str.contains("Apex Robotics Inc"));
+        // Check EPC QR payment code markers
+        assert!(pdf_str.contains("SEPA EPC QR Payment"));
+        assert!(pdf_str.contains("DE89 3704 0044 0532 0130 00"));
+        println!(">>> Invoice PDF verified");
+
+        // Purchase Order PDF
+        let po = engine
+            .create_purchase_order(
+                "PO-2026-888".into(),
+                contact.id.clone(),
+                Some("2026-12-01".into()),
+                vec![PurchaseOrderLineDto {
+                    id: String::new(),
+                    item_id: "item-sample-1".into(),
+                    description: "Raw 6061-T6 Aluminum Billet 50mm".into(),
+                    quantity: "20".into(),
+                    received_quantity: "0".into(),
+                    unit_price: "45.00".into(),
+                    tax_rate: "0.0".into(),
+                    line_total: "900.00".into(),
+                }],
+                Some("Expedited delivery requested".into()),
+            )
+            .expect("create po");
+
+        let po_pdf = engine.generate_purchase_order_pdf(po.id.clone()).expect("generate po pdf");
+        println!(">>> PO PDF generated");
+        let po_pdf_str = String::from_utf8_lossy(&po_pdf);
+        assert!(po_pdf_str.starts_with("%PDF-1.4"));
+        assert!(po_pdf_str.contains("PO-2026-888"));
+        assert!(po_pdf_str.contains("Raw 6061-T6 Aluminum Billet 50mm"));
+
+        // 2. Peer-to-Peer LAN / mDNS Sync (LEDGER-12)
+        println!(">>> Checking sync status");
+        let sync_status = engine.get_sync_status().expect("get sync status");
+        assert_eq!(sync_status.connected_peers_count, 2);
+        assert!(!sync_status.local_hlc.is_empty());
+
+        engine
+            .register_peer(
+                "node-laptop-03".into(),
+                "Craftsman Linux Laptop".into(),
+                "192.168.1.199".into(),
+                8080,
+            )
+            .expect("register peer");
+        println!(">>> Peer registered");
+
+        let updated_sync = engine.get_sync_status().expect("updated sync");
+        assert_eq!(updated_sync.connected_peers_count, 3);
+        assert!(updated_sync.peers.iter().any(|p| p.node_id == "node-laptop-03"));
+
+        println!(">>> Triggering LAN sync");
+        let synced = engine.trigger_lan_sync().expect("trigger lan sync");
+        println!(">>> Synced: {:?}", synced.convergence_state);
+        assert_eq!(synced.unsynced_events_count, 0);
+        assert_eq!(synced.convergence_state, "Converged");
+
+        // 3. Low-Stock Alerts & Automated Reorder PO (LEDGER-13)
+        println!(">>> Checking low-stock alerts");
+        let low_stock_item = engine
+            .create_item(
+                "CRITICAL-BEARING-608".into(),
+                "High Speed Bearing 608".into(),
+                Some("Essential motor part".into()),
+                "pcs".into(),
+                false,
+                false,
+                "100".into(), // min stock = 100
+                None,
+            )
+            .expect("create item");
+
+        let alerts = engine.get_low_stock_alerts().expect("get low stock alerts");
+        assert!(alerts.iter().any(|a| a.sku == "CRITICAL-BEARING-608"));
+
+        let reorder_po = engine.generate_reorder_po(low_stock_item.id).expect("generate reorder po");
+        assert!(reorder_po.po_number.starts_with("PO-REORDER-"));
+        assert!(!reorder_po.lines.is_empty());
+        println!(">>> Reorder PO generated");
+
+        // 4. Kanban Workflow Board & Component Genealogy (LEDGER-14 & LEDGER-15)
+        let wh = engine
+            .create_location(
+                "WH-TEST".into(),
+                "Assembly Bay".into(),
+                None,
+                "Warehouse".into(),
+                Some(0.0),
+                Some(0.0),
+            )
+            .expect("create loc");
+
+        let raw_comp = engine
+            .create_item(
+                "RAW-MOTOR-01".into(),
+                "NEMA 17 Stepper Motor".into(),
+                None,
+                "pcs".into(),
+                false,
+                true,
+                "10".into(),
+                None,
+            )
+            .expect("create raw comp");
+
+        let finished_good = engine
+            .create_item(
+                "FINISHED-ASSEMBLY-01".into(),
+                "Actuator Assembly Model X".into(),
+                None,
+                "pcs".into(),
+                false,
+                true,
+                "5".into(),
+                None,
+            )
+            .expect("create finished good");
+
+        // Receive stock of raw component with lot
+        println!(">>> Moving stock");
+        engine
+            .move_stock(
+                raw_comp.id.clone(),
+                None,
+                Some(wh.id.clone()),
+                "20".into(),
+                "Receive".into(),
+                Some("LOT-MOTOR-BATCH-01".into()),
+                Some("Initial batch".into()),
+            )
+            .expect("receive motor stock");
+
+        // Register lot details in inventory_lots
+        println!(">>> Registering lot details");
+        engine
+            .create_or_update_lot(
+                "LOT-MOTOR-BATCH-01".into(),
+                raw_comp.id.clone(),
+                Some("2029-06-30".into()),
+                Some("released".into()),
+                Some("STEPPER-MFR-771".into()),
+            )
+            .expect("create lot");
+
+        let lot_info = engine
+            .get_lot_info("LOT-MOTOR-BATCH-01".into())
+            .expect("get lot info")
+            .expect("lot found");
+        assert_eq!(lot_info.manufacturer_batch.as_deref(), Some("STEPPER-MFR-771"));
+        assert_eq!(lot_info.quarantine_status, "released");
+        println!(">>> Lot info verified");
+
+        // Create BOM and Work Order
+        println!(">>> Creating BOM");
+        let bom = engine
+            .create_bom(
+                "BOM-ACTUATOR-01".into(),
+                finished_good.id.clone(),
+                "Actuator Assembly Formula".into(),
+                "1".into(),
+                vec![BomComponentDto {
+                    id: String::new(),
+                    item_id: raw_comp.id.clone(),
+                    quantity: "2".into(),
+                    scrap_percentage: "0.0".into(),
+                    notes: None,
+                }],
+                Some("Precision calibration step required".into()),
+            )
+            .expect("create bom");
+
+        println!(">>> Creating Work Order");
+        let wo = engine
+            .create_work_order(
+                "WO-ACTUATOR-101".into(),
+                bom.id,
+                "2".into(),
+                wh.id.clone(),
+                wh.id.clone(),
+            )
+            .expect("create wo");
+        assert_eq!(wo.status, "Draft");
+        println!(">>> WO created: {}", wo.status);
+
+        // Kanban status advance: Draft/Planned -> In Progress -> Quality Check
+        let wo_prog = engine
+            .update_work_order_status(wo.id.clone(), "In Progress".into())
+            .expect("advance to in progress");
+        assert_eq!(wo_prog.status, "In Progress");
+        println!(">>> WO In Progress");
+
+        let wo_qc = engine
+            .update_work_order_status(wo.id.clone(), "Quality Check".into())
+            .expect("advance to qc");
+        assert_eq!(wo_qc.status, "Quality Check");
+        println!(">>> WO Quality Check");
+
+        // Complete work order -> triggers stock consumption and genealogy linking
+        let wo_done = engine
+            .update_work_order_status(wo.id.clone(), "Completed".into())
+            .expect("advance to completed");
+        assert_eq!(wo_done.status, "Completed");
+        println!(">>> WO Completed");
+
+        // Verify component genealogy tree
+        println!(">>> Getting genealogy");
+        let genealogy = engine
+            .get_work_order_genealogy(wo.id.clone())
+            .expect("get genealogy")
+            .expect("genealogy tree found");
+        println!(">>> Got genealogy: components len = {}", genealogy.components.len());
+        assert_eq!(genealogy.work_order_number, "WO-ACTUATOR-101");
+        assert!(genealogy.finished_lot_number.starts_with("LOT-MFG-"));
+        assert!(!genealogy.components.is_empty());
+        assert_eq!(genealogy.components[0].component_sku, "RAW-MOTOR-01");
+        assert_eq!(genealogy.components[0].component_lot_number.as_deref(), Some("LOT-MOTOR-BATCH-01"));
+
+        // 5. Project Task Kanban & Unbilled Hours
+        println!(">>> Creating project");
+        let project = engine
+            .create_project(
+                "Robotic Cell Installation".into(),
+                "PRJ-ROBOT-01".into(),
+                Some(contact.id.clone()),
+                "150.00".into(),
+                "40".into(),
+            )
+            .expect("create project");
+
+        println!(">>> Creating task 1");
+        let task1 = engine
+            .create_task(project.id.clone(), "Safety Enclosure Assembly".into(), "High".into(), "12".into())
+            .expect("create task 1");
+        println!(">>> Creating task 2");
+        let task2 = engine
+            .create_task(project.id.clone(), "Wiring & Sensor Setup".into(), "Urgent".into(), "8".into())
+            .expect("create task 2");
+
+        println!(">>> Listing tasks");
+        let tasks = engine.list_project_tasks(Some(project.id.clone())).expect("list tasks");
+        assert_eq!(tasks.len(), 2);
+
+        // Update task status on Kanban board
+        println!(">>> Updating task status");
+        let task1_prog = engine
+            .update_project_task_status(task1.id, "In Progress".into())
+            .expect("update task status");
+        assert_eq!(task1_prog.status, "In Progress");
+
+        // Record time and verify unbilled hours summary
+        println!(">>> Recording timesheet");
+        engine
+            .record_timesheet(
+                project.id.clone(),
+                Some(task2.id),
+                "robotics_tech".into(),
+                "2026-10-31".into(),
+                "4.5".into(),
+                None,
+                true,
+                "Mounted electrical box and ran harness".into(),
+            )
+            .expect("record ts");
+
+        println!(">>> Getting unbilled summary");
+        let unbilled = engine.get_unbilled_hours_summary(Some(project.id)).expect("get unbilled summary");
+        assert_eq!(unbilled.total_unbilled_hours, "4.5");
+        assert_eq!(Decimal::from_str(&unbilled.total_unbilled_amount).unwrap(), Decimal::from_str("675.00").unwrap());
+        assert_eq!(unbilled.unbilled_entries_count, 1);
+        println!(">>> ALL V0.0.3 TESTS COMPLETED SUCCESSFULLY!");
     }
 }

@@ -78,6 +78,24 @@ impl ErpModule for ManufacturingModule {
                 CREATE INDEX IF NOT EXISTS idx_wo_status ON work_orders(status);
                 "#,
             },
+            Migration {
+                version: 2,
+                name: "create_work_order_genealogy_table",
+                sql: r#"
+                CREATE TABLE IF NOT EXISTS work_order_genealogy (
+                    id TEXT PRIMARY KEY,
+                    work_order_id TEXT NOT NULL REFERENCES work_orders(id),
+                    finished_item_id TEXT NOT NULL,
+                    finished_lot_number TEXT NOT NULL,
+                    component_item_id TEXT NOT NULL,
+                    component_lot_number TEXT,
+                    component_quantity TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_genealogy_wo ON work_order_genealogy(work_order_id);
+                CREATE INDEX IF NOT EXISTS idx_genealogy_finished_lot ON work_order_genealogy(finished_lot_number);
+                "#,
+            },
         ]
     }
 

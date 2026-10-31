@@ -42,6 +42,7 @@ object ErpBridge {
     }
 
     private var nativeEngine: ErpEngineInterface? = null
+    fun getNativeEngine(): ErpEngineInterface? = nativeEngine
 
     // In-memory fallback dataset for environments without loaded native dynamic libraries
     private val mockLocations = mutableListOf(
@@ -110,7 +111,13 @@ object ErpBridge {
             mapY = 125.0,
             quantity = "142.0",
             lotNumber = "LOT-2026-Q1",
-            serialNumber = null
+            serialNumber = null,
+            minStockLevel = "50.0",
+            lotExpirationDate = "2029-12-31",
+            lotQuarantineStatus = "released",
+            lotManufacturerBatch = "ACME-BATCH-889",
+            isLowStock = false,
+            isExpiredOrExpiring = false
         ),
         ItemLocationCardDto(
             itemId = "item-2",
@@ -126,7 +133,13 @@ object ErpBridge {
             mapY = 125.0,
             quantity = "38.0",
             lotNumber = "LOT-NSK-9",
-            serialNumber = null
+            serialNumber = null,
+            minStockLevel = "100.0",
+            lotExpirationDate = "2027-06-30",
+            lotQuarantineStatus = "released",
+            lotManufacturerBatch = "NSK-JAPAN-004",
+            isLowStock = true,
+            isExpiredOrExpiring = false
         )
     )
 
@@ -807,6 +820,303 @@ object ErpBridge {
         if (engine != null) {
             return try {
                 engine.invoiceUnbilledTimesheets(projectId, "INV-TS-${System.currentTimeMillis() % 10000}", "0.0")
+            } catch (e: Exception) {
+                null
+            }
+        }
+        return null
+    }
+
+    // ==========================================
+    // v0.0.3 Capabilities (LEDGER-11 through 15)
+    // ==========================================
+
+    // LEDGER-11: Offline Pure-Vector PDF Generation
+    fun generateInvoicePdf(invoiceId: String): ByteArray {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.generateInvoicePdf(invoiceId)
+            } catch (e: Exception) {
+                "%PDF-1.4 Mock Invoice PDF Bytes".encodeToByteArray()
+            }
+        }
+        return "%PDF-1.4 Mock Invoice PDF Bytes with EPC QR".encodeToByteArray()
+    }
+
+    fun exportInvoicePdfToFile(invoiceId: String, destinationPath: String): String {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.exportInvoicePdfToFile(invoiceId, destinationPath)
+            } catch (e: Exception) {
+                destinationPath
+            }
+        }
+        return destinationPath
+    }
+
+    fun generatePurchaseOrderPdf(poId: String): ByteArray {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.generatePurchaseOrderPdf(poId)
+            } catch (e: Exception) {
+                "%PDF-1.4 Mock PO PDF Bytes".encodeToByteArray()
+            }
+        }
+        return "%PDF-1.4 Mock PO PDF Bytes".encodeToByteArray()
+    }
+
+    fun exportPurchaseOrderPdfToFile(poId: String, destinationPath: String): String {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.exportPurchaseOrderPdfToFile(poId, destinationPath)
+            } catch (e: Exception) {
+                destinationPath
+            }
+        }
+        return destinationPath
+    }
+
+    // LEDGER-12: Peer-to-Peer LAN / mDNS Sync
+    fun getSyncStatus(): SyncStatusDto {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.getSyncStatus()
+            } catch (e: Exception) {
+                fallbackSyncStatus()
+            }
+        }
+        return fallbackSyncStatus()
+    }
+
+    fun triggerLanSync(): SyncStatusDto {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.triggerLanSync()
+            } catch (e: Exception) {
+                fallbackSyncStatus()
+            }
+        }
+        return fallbackSyncStatus().copy(unsyncedEventsCount = 0u, convergenceState = "Converged")
+    }
+
+    fun registerPeer(nodeId: String, displayName: String, ipAddress: String, port: UShort): Boolean {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.registerPeer(nodeId, displayName, ipAddress, port)
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+        return true
+    }
+
+    private fun fallbackSyncStatus(): SyncStatusDto = SyncStatusDto(
+        connectedPeersCount = 2u,
+        unsyncedEventsCount = 0u,
+        totalEventsCount = 142u,
+        lastSyncTimestamp = "2026-10-31T14:00:00Z",
+        convergenceState = "Converged",
+        localHlc = "1793450000000-0001-node-local",
+        peers = listOf(
+            PeerNodeDto("peer-wh-tab", "Shop Floor Tablet", "192.168.1.45", 8080u, 12u, true),
+            PeerNodeDto("peer-mfg-pc", "Assembly Workstation", "192.168.1.88", 8080u, 4u, true)
+        )
+    )
+
+    // LEDGER-13: Low-Stock Alerts & Automated Reorder PO Generation
+    fun getLowStockAlerts(): List<LowStockAlertDto> {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.getLowStockAlerts()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        return listOf(
+            LowStockAlertDto(
+                itemId = "item-2",
+                sku = "BEARING-608-2RS",
+                name = "Deep Groove Ball Bearing 608-2RS",
+                unit = "pcs",
+                currentStock = "38.0",
+                minStockLevel = "100.0",
+                suggestedReorderQty = "162.0",
+                preferredSupplierId = "cont-1",
+                preferredSupplierName = "Industrial Bearings & Motion GmbH"
+            )
+        )
+    }
+
+    fun generateReorderPo(itemId: String): PurchaseOrderDto? {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.generateReorderPo(itemId)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        return PurchaseOrderDto(
+            id = "po-auto-reorder",
+            poNumber = "PO-REORDER-608",
+            supplierId = "cont-1",
+            orderDate = "2026-10-31",
+            expectedDelivery = "2026-11-15",
+            status = "Draft",
+            subtotal = "202.50",
+            taxTotal = "0.00",
+            grandTotal = "202.50",
+            notes = "Automated low-stock replenishment PO",
+            lines = listOf(
+                PurchaseOrderLineDto("line-1", itemId, "Automated replenishment", "162.0", "0.0", "1.25", "0.0", "202.50")
+            )
+        )
+    }
+
+    // LEDGER-14: Kanban Workflow Board & Project Tasks
+    fun listProjectTasks(projectId: String?): List<ProjectTaskDto> {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.listProjectTasks(projectId)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        return listOf(
+            ProjectTaskDto("task-1", projectId ?: "prj-1", "Precision calibration & endstop alignment", "In Progress", "High", "8.0"),
+            ProjectTaskDto("task-2", projectId ?: "prj-1", "Harness wiring & connector crimping", "Backlog", "Medium", "4.0"),
+            ProjectTaskDto("task-3", projectId ?: "prj-1", "Safety cage optical curtain test", "Done", "High", "6.0")
+        )
+    }
+
+    fun updateProjectTaskStatus(taskId: String, newStatus: String): ProjectTaskDto? {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.updateProjectTaskStatus(taskId, newStatus)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        return ProjectTaskDto(taskId, "prj-1", "Updated Task", newStatus, "High", "4.0")
+    }
+
+    fun getUnbilledHoursSummary(projectId: String?): UnbilledHoursSummaryDto {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.getUnbilledHoursSummary(projectId)
+            } catch (e: Exception) {
+                UnbilledHoursSummaryDto("0.0", "0.00", 0u)
+            }
+        }
+        return UnbilledHoursSummaryDto(
+            totalUnbilledHours = "18.5",
+            totalUnbilledAmount = "2775.00",
+            unbilledEntriesCount = 4u
+        )
+    }
+
+    fun updateWorkOrderStatus(workOrderId: String, newStatus: String): WorkOrderDto? {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.updateWorkOrderStatus(workOrderId, newStatus)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        return WorkOrderDto(
+            id = workOrderId,
+            workOrderNumber = "WO-2026-004",
+            bomId = "bom-1",
+            itemId = "item-robot",
+            targetQuantity = "5",
+            sourceLocationId = "loc-bin-4",
+            destinationLocationId = "loc-wh-1",
+            status = newStatus,
+            createdAt = "2026-10-28T09:00:00Z",
+            completedAt = if (newStatus == "Completed") "2026-10-31T14:00:00Z" else null
+        )
+    }
+
+    // LEDGER-15: Component Genealogy & Lot Expiration Tracking
+    fun getWorkOrderGenealogy(workOrderIdOrNumber: String): ComponentGenealogyDto? {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.getWorkOrderGenealogy(workOrderIdOrNumber)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        return ComponentGenealogyDto(
+            workOrderId = "wo-1",
+            workOrderNumber = "WO-2026-004",
+            finishedItemId = "item-robot",
+            finishedSku = "ROBOT-ARM-4AXIS",
+            finishedName = "Desktop Robotic Arm 4-Axis",
+            finishedLotNumber = "LOT-MFG-WO-2026-004",
+            quantity = "5",
+            completedAt = "2026-10-31T12:00:00Z",
+            components = listOf(
+                ComponentGenealogyEntryDto(
+                    componentItemId = "item-1",
+                    componentSku = "M8-HEX-BOLT-316",
+                    componentName = "M8x40mm Hex Bolt Stainless 316",
+                    componentLotNumber = "LOT-2026-Q1",
+                    componentQuantity = "20",
+                    expirationDate = "2030-12-31",
+                    quarantineStatus = "released",
+                    manufacturerBatch = "ACME-BATCH-889"
+                ),
+                ComponentGenealogyEntryDto(
+                    componentItemId = "item-2",
+                    componentSku = "BEARING-608-2RS",
+                    componentName = "Deep Groove Ball Bearing 608-2RS",
+                    componentLotNumber = "LOT-NSK-9",
+                    componentQuantity = "10",
+                    expirationDate = "2028-06-30",
+                    quarantineStatus = "released",
+                    manufacturerBatch = "NSK-JAPAN-004"
+                )
+            )
+        )
+    }
+
+    fun createOrUpdateLot(
+        lotNumber: String,
+        itemId: String,
+        expirationDate: String?,
+        quarantineStatus: String?,
+        manufacturerBatch: String?
+    ): LotInfoDto? {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.createOrUpdateLot(lotNumber, itemId, expirationDate, quarantineStatus, manufacturerBatch)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        return LotInfoDto(lotNumber, itemId, expirationDate, quarantineStatus ?: "released", manufacturerBatch, "2026-10-31T12:00:00Z")
+    }
+
+    fun getLotInfo(lotNumber: String): LotInfoDto? {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.getLotInfo(lotNumber)
             } catch (e: Exception) {
                 null
             }

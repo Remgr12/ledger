@@ -154,6 +154,17 @@ pub struct StockQuant {
     pub updated_at: DateTime<Utc>,
 }
 
+/// Lot tracking model for quality, compliance, and expiration monitoring
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LotInfo {
+    pub lot_number: String,
+    pub item_id: String,
+    pub expiration_date: Option<String>,
+    pub quarantine_status: String,
+    pub manufacturer_batch: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
 /// Instant "Where Is It?" search result model
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ItemLocationMatch {
@@ -171,6 +182,10 @@ pub struct ItemLocationMatch {
     pub quantity: Decimal,
     pub lot_number: Option<String>,
     pub serial_number: Option<String>,
+    pub min_stock_level: Decimal,
+    pub lot_expiration_date: Option<String>,
+    pub lot_quarantine_status: Option<String>,
+    pub lot_manufacturer_batch: Option<String>,
 }
 
 /// Parsed GS1 Barcode with Standard Application Identifiers (AI)

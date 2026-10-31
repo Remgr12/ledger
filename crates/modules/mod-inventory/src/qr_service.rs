@@ -158,10 +158,15 @@ impl QrService {
                         l.map_y,
                         q.quantity,
                         q.lot_number,
-                        q.serial_number
+                        q.serial_number,
+                        i.min_stock_level,
+                        lt.expiration_date,
+                        lt.quarantine_status,
+                        lt.manufacturer_batch
                     FROM stock_quants q
                     INNER JOIN inventory_items i ON q.item_id = i.id
                     INNER JOIN storage_locations l ON q.location_id = l.id
+                    LEFT JOIN inventory_lots lt ON q.lot_number = lt.lot_number
                     WHERE l.id = ?1 AND CAST(q.quantity AS REAL) > 0
                     ORDER BY i.name ASC
                     "#,
@@ -170,6 +175,8 @@ impl QrService {
                 let rows = stmt.query_map(rusqlite::params![location.id], |row| {
                     let quantity_str: String = row.get(11)?;
                     let quantity = Decimal::from_str(&quantity_str).unwrap_or(Decimal::ZERO);
+                    let min_stock_str: String = row.get(14)?;
+                    let min_stock_level = Decimal::from_str(&min_stock_str).unwrap_or(Decimal::ZERO);
 
                     Ok(ItemLocationMatch {
                         item_id: row.get(0)?,
@@ -186,6 +193,10 @@ impl QrService {
                         quantity,
                         lot_number: row.get(12)?,
                         serial_number: row.get(13)?,
+                        min_stock_level,
+                        lot_expiration_date: row.get(15)?,
+                        lot_quarantine_status: row.get(16)?,
+                        lot_manufacturer_batch: row.get(17)?,
                     })
                 })?;
 

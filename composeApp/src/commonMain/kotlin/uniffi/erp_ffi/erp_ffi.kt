@@ -814,6 +814,38 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -849,6 +881,8 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_create_location(`ptr`: Pointer,`code`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,`parentId`: RustBuffer.ByValue,`locationType`: RustBuffer.ByValue,`mapX`: RustBuffer.ByValue,`mapY`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_create_or_update_lot(`ptr`: Pointer,`lotNumber`: RustBuffer.ByValue,`itemId`: RustBuffer.ByValue,`expirationDate`: RustBuffer.ByValue,`quarantineStatus`: RustBuffer.ByValue,`manufacturerBatch`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_create_project(`ptr`: Pointer,`name`: RustBuffer.ByValue,`code`: RustBuffer.ByValue,`customerId`: RustBuffer.ByValue,`billingRateHourly`: RustBuffer.ByValue,`estimatedHours`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_create_purchase_order(`ptr`: Pointer,`poNumber`: RustBuffer.ByValue,`supplierId`: RustBuffer.ByValue,`expectedDelivery`: RustBuffer.ByValue,`lines`: RustBuffer.ByValue,`notes`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -863,11 +897,21 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_export_data_json(`ptr`: Pointer,`entityType`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_export_invoice_pdf_to_file(`ptr`: Pointer,`invoiceId`: RustBuffer.ByValue,`destinationPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_export_purchase_order_pdf_to_file(`ptr`: Pointer,`poId`: RustBuffer.ByValue,`destinationPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_finalize_invoice(`ptr`: Pointer,`invoiceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_generate_formatted_label_svg(`ptr`: Pointer,`formatType`: RustBuffer.ByValue,`targetUri`: RustBuffer.ByValue,`title`: RustBuffer.ByValue,`subtitle`: RustBuffer.ByValue,`details`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_generate_invoice_pdf(`ptr`: Pointer,`invoiceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_generate_purchase_order_pdf(`ptr`: Pointer,`poId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_generate_qr_label_svg(`ptr`: Pointer,`targetUri`: RustBuffer.ByValue,`title`: RustBuffer.ByValue,`subtitle`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_generate_reorder_po(`ptr`: Pointer,`itemId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_get_available_modules(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -877,13 +921,23 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_get_location_tree(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_get_lot_info(`ptr`: Pointer,`lotNumber`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_get_low_stock_alerts(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_get_plugin_ui_nodes(`ptr`: Pointer,`contextView`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_get_profit_and_loss(`ptr`: Pointer,`startDate`: RustBuffer.ByValue,`endDate`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_get_storage_locations(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_get_sync_status(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_get_trial_balance(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_get_unbilled_hours_summary(`ptr`: Pointer,`projectId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_get_work_order_genealogy(`ptr`: Pointer,`workOrderIdOrNumber`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_import_data_csv(`ptr`: Pointer,`entityType`: RustBuffer.ByValue,`csvContent`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Int
@@ -902,6 +956,8 @@ internal interface UniffiLib : Library {
     fun uniffi_erp_ffi_fn_method_erpengine_list_invoices(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_list_items(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_list_project_tasks(`ptr`: Pointer,`projectId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_list_projects(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -923,6 +979,8 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_record_timesheet(`ptr`: Pointer,`projectId`: RustBuffer.ByValue,`taskId`: RustBuffer.ByValue,`employeeOrUser`: RustBuffer.ByValue,`activityDate`: RustBuffer.ByValue,`hours`: RustBuffer.ByValue,`hourlyRateOverride`: RustBuffer.ByValue,`isBillable`: Byte,`description`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_register_peer(`ptr`: Pointer,`nodeId`: RustBuffer.ByValue,`displayName`: RustBuffer.ByValue,`ipAddress`: RustBuffer.ByValue,`port`: Short,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun uniffi_erp_ffi_fn_method_erpengine_resolve_qr_scan(`ptr`: Pointer,`rawPayload`: RustBuffer.ByValue,`activeContextLocationId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_search_item_locations(`ptr`: Pointer,`query`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -931,10 +989,16 @@ internal interface UniffiLib : Library {
     ): Unit
     fun uniffi_erp_ffi_fn_method_erpengine_submit_purchase_order(`ptr`: Pointer,`poId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_trigger_lan_sync(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_uninstall_wasm_plugin(`ptr`: Pointer,`pluginId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_erp_ffi_fn_method_erpengine_update_location_coordinates(`ptr`: Pointer,`locationId`: RustBuffer.ByValue,`mapX`: Double,`mapY`: Double,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_erp_ffi_fn_method_erpengine_update_project_task_status(`ptr`: Pointer,`taskId`: RustBuffer.ByValue,`newStatus`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_update_work_order_status(`ptr`: Pointer,`workOrderId`: RustBuffer.ByValue,`newStatus`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_func_init_erp(`dbPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
     fun ffi_erp_ffi_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1061,6 +1125,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_create_location(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_create_or_update_lot(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_create_project(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_create_purchase_order(
@@ -1075,11 +1141,21 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_export_data_json(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_export_invoice_pdf_to_file(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_export_purchase_order_pdf_to_file(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_finalize_invoice(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_generate_formatted_label_svg(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_generate_invoice_pdf(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_generate_purchase_order_pdf(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_generate_qr_label_svg(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_generate_reorder_po(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_get_available_modules(
     ): Short
@@ -1089,13 +1165,23 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_get_location_tree(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_get_lot_info(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_get_low_stock_alerts(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_get_plugin_ui_nodes(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_get_profit_and_loss(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_get_storage_locations(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_get_sync_status(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_get_trial_balance(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_get_unbilled_hours_summary(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_get_work_order_genealogy(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_import_data_csv(
     ): Short
@@ -1114,6 +1200,8 @@ internal interface UniffiLib : Library {
     fun uniffi_erp_ffi_checksum_method_erpengine_list_invoices(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_list_items(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_list_project_tasks(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_list_projects(
     ): Short
@@ -1135,6 +1223,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_record_timesheet(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_register_peer(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_resolve_qr_scan(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_search_item_locations(
@@ -1143,9 +1233,15 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_submit_purchase_order(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_trigger_lan_sync(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_uninstall_wasm_plugin(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_update_location_coordinates(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_update_project_task_status(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_update_work_order_status(
     ): Short
     fun uniffi_erp_ffi_checksum_constructor_erpengine_new(
     ): Short
@@ -1184,6 +1280,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_create_location() != 36693.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_create_or_update_lot() != 43058.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_create_project() != 1176.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1205,13 +1304,28 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_export_data_json() != 57358.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_export_invoice_pdf_to_file() != 65291.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_export_purchase_order_pdf_to_file() != 14807.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_finalize_invoice() != 24641.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_generate_formatted_label_svg() != 20284.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_generate_invoice_pdf() != 23900.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_generate_purchase_order_pdf() != 41449.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_generate_qr_label_svg() != 47914.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_generate_reorder_po() != 57960.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_available_modules() != 19713.toShort()) {
@@ -1226,6 +1340,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_location_tree() != 50050.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_lot_info() != 19110.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_low_stock_alerts() != 34768.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_plugin_ui_nodes() != 44275.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1235,7 +1355,16 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_storage_locations() != 60675.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_sync_status() != 45286.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_trial_balance() != 36115.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_unbilled_hours_summary() != 51791.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_work_order_genealogy() != 13033.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_import_data_csv() != 42359.toShort()) {
@@ -1263,6 +1392,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_list_items() != 59092.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_list_project_tasks() != 45278.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_list_projects() != 49779.toShort()) {
@@ -1295,6 +1427,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_record_timesheet() != 41873.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_register_peer() != 59936.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_resolve_qr_scan() != 59632.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1307,10 +1442,19 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_submit_purchase_order() != 36820.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_trigger_lan_sync() != 37448.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_uninstall_wasm_plugin() != 51598.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_update_location_coordinates() != 53509.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_update_project_task_status() != 48084.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_update_work_order_status() != 44378.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_constructor_erpengine_new() != 55695.toShort()) {
@@ -1362,6 +1506,29 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
  * @suppress
  * */
 object NoPointer
+
+/**
+ * @suppress
+ */
+public object FfiConverterUShort: FfiConverter<UShort, Short> {
+    override fun lift(value: Short): UShort {
+        return value.toUShort()
+    }
+
+    override fun read(buf: ByteBuffer): UShort {
+        return lift(buf.getShort())
+    }
+
+    override fun lower(value: UShort): Short {
+        return value.toShort()
+    }
+
+    override fun allocationSize(value: UShort) = 2UL
+
+    override fun write(value: UShort, buf: ByteBuffer) {
+        buf.putShort(value.toShort())
+    }
+}
 
 /**
  * @suppress
@@ -1717,6 +1884,11 @@ public interface ErpEngineInterface {
      */
     fun `createLocation`(`code`: kotlin.String, `name`: kotlin.String, `parentId`: kotlin.String?, `locationType`: kotlin.String, `mapX`: kotlin.Double?, `mapY`: kotlin.Double?): LocationDto
     
+    /**
+     * Register or update a tracked inventory lot
+     */
+    fun `createOrUpdateLot`(`lotNumber`: kotlin.String, `itemId`: kotlin.String, `expirationDate`: kotlin.String?, `quarantineStatus`: kotlin.String?, `manufacturerBatch`: kotlin.String?): LotInfoDto
+    
     fun `createProject`(`name`: kotlin.String, `code`: kotlin.String, `customerId`: kotlin.String?, `billingRateHourly`: kotlin.String, `estimatedHours`: kotlin.String): ProjectDto
     
     fun `createPurchaseOrder`(`poNumber`: kotlin.String, `supplierId`: kotlin.String, `expectedDelivery`: kotlin.String?, `lines`: List<PurchaseOrderLineDto>, `notes`: kotlin.String?): PurchaseOrderDto
@@ -1738,6 +1910,16 @@ public interface ErpEngineInterface {
     fun `exportDataJson`(`entityType`: kotlin.String): kotlin.String
     
     /**
+     * Export invoice PDF directly to a local filesystem destination
+     */
+    fun `exportInvoicePdfToFile`(`invoiceId`: kotlin.String, `destinationPath`: kotlin.String): kotlin.String
+    
+    /**
+     * Export purchase order PDF directly to a local filesystem destination
+     */
+    fun `exportPurchaseOrderPdfToFile`(`poId`: kotlin.String, `destinationPath`: kotlin.String): kotlin.String
+    
+    /**
      * Finalize an invoice and trigger stock deductions
      */
     fun `finalizeInvoice`(`invoiceId`: kotlin.String): InvoiceDto
@@ -1748,9 +1930,24 @@ public interface ErpEngineInterface {
     fun `generateFormattedLabelSvg`(`formatType`: kotlin.String, `targetUri`: kotlin.String, `title`: kotlin.String, `subtitle`: kotlin.String, `details`: kotlin.String?): kotlin.String
     
     /**
+     * Generate an offline vector PDF invoice with fixed-point Decimal math & EPC QR code
+     */
+    fun `generateInvoicePdf`(`invoiceId`: kotlin.String): kotlin.ByteArray
+    
+    /**
+     * Generate an offline vector PDF purchase order for vendor communication
+     */
+    fun `generatePurchaseOrderPdf`(`poId`: kotlin.String): kotlin.ByteArray
+    
+    /**
      * Generate an offline SVG label for thermal/sticker printers
      */
     fun `generateQrLabelSvg`(`targetUri`: kotlin.String, `title`: kotlin.String, `subtitle`: kotlin.String): kotlin.String
+    
+    /**
+     * Automatically create a draft Purchase Order for a low-stock inventory item
+     */
+    fun `generateReorderPo`(`itemId`: kotlin.String): PurchaseOrderDto
     
     /**
      * Retrieve all registered ERP modules with their enabled status and UI routes
@@ -1770,6 +1967,16 @@ public interface ErpEngineInterface {
     fun `getLocationTree`(): List<LocationNodeDto>
     
     /**
+     * Get details of an inventory lot
+     */
+    fun `getLotInfo`(`lotNumber`: kotlin.String): LotInfoDto?
+    
+    /**
+     * Retrieve list of all items currently at or below their minimum stock threshold
+     */
+    fun `getLowStockAlerts`(): List<LowStockAlertDto>
+    
+    /**
      * Retrieve declarative UI nodes from installed plugins
      */
     fun `getPluginUiNodes`(`contextView`: kotlin.String): List<PluginUiNodeDto>
@@ -1781,7 +1988,22 @@ public interface ErpEngineInterface {
      */
     fun `getStorageLocations`(): List<LocationDto>
     
+    /**
+     * Get peer-to-peer sync status and connected local LAN nodes
+     */
+    fun `getSyncStatus`(): SyncStatusDto
+    
     fun `getTrialBalance`(): FinancialStatementDto
+    
+    /**
+     * Get unbilled hours and billable totals summary
+     */
+    fun `getUnbilledHoursSummary`(`projectId`: kotlin.String?): UnbilledHoursSummaryDto
+    
+    /**
+     * Retrieve component genealogy tree for a finished work order
+     */
+    fun `getWorkOrderGenealogy`(`workOrderIdOrNumber`: kotlin.String): ComponentGenealogyDto?
     
     /**
      * Import initial data from CSV spreadsheets ("items", "contacts")
@@ -1822,6 +2044,11 @@ public interface ErpEngineInterface {
      */
     fun `listItems`(): List<ItemDto>
     
+    /**
+     * List project tasks, optionally filtered by project_id
+     */
+    fun `listProjectTasks`(`projectId`: kotlin.String?): List<ProjectTaskDto>
+    
     fun `listProjects`(): List<ProjectDto>
     
     fun `listPurchaseOrders`(): List<PurchaseOrderDto>
@@ -1853,6 +2080,11 @@ public interface ErpEngineInterface {
     fun `recordTimesheet`(`projectId`: kotlin.String, `taskId`: kotlin.String?, `employeeOrUser`: kotlin.String, `activityDate`: kotlin.String, `hours`: kotlin.String, `hourlyRateOverride`: kotlin.String?, `isBillable`: kotlin.Boolean, `description`: kotlin.String): TimesheetEntryDto
     
     /**
+     * Register a discovered peer on the local subnet (mDNS / UDP zero-config)
+     */
+    fun `registerPeer`(`nodeId`: kotlin.String, `displayName`: kotlin.String, `ipAddress`: kotlin.String, `port`: kotlin.UShort)
+    
+    /**
      * Resolve a scanned QR code or barcode payload
      */
     fun `resolveQrScan`(`rawPayload`: kotlin.String, `activeContextLocationId`: kotlin.String?): ScanResolutionDto
@@ -1870,6 +2102,11 @@ public interface ErpEngineInterface {
     fun `submitPurchaseOrder`(`poId`: kotlin.String): PurchaseOrderDto
     
     /**
+     * Trigger P2P event log sync across discovered LAN peers
+     */
+    fun `triggerLanSync`(): SyncStatusDto
+    
+    /**
      * Uninstall a WASM plugin by ID
      */
     fun `uninstallWasmPlugin`(`pluginId`: kotlin.String)
@@ -1878,6 +2115,16 @@ public interface ErpEngineInterface {
      * Update 2D spatial coordinates for a warehouse location
      */
     fun `updateLocationCoordinates`(`locationId`: kotlin.String, `mapX`: kotlin.Double, `mapY`: kotlin.Double)
+    
+    /**
+     * Update status of a project task (e.g. Backlog -> In Progress -> Review -> Done)
+     */
+    fun `updateProjectTaskStatus`(`taskId`: kotlin.String, `newStatus`: kotlin.String): ProjectTaskDto
+    
+    /**
+     * Update work order status (Planned -> In Progress -> Quality Check -> Completed) and record state transition
+     */
+    fun `updateWorkOrderStatus`(`workOrderId`: kotlin.String, `newStatus`: kotlin.String): WorkOrderDto
     
     companion object
 }
@@ -2050,6 +2297,22 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
     
 
     
+    /**
+     * Register or update a tracked inventory lot
+     */
+    @Throws(ErpFfiException::class)override fun `createOrUpdateLot`(`lotNumber`: kotlin.String, `itemId`: kotlin.String, `expirationDate`: kotlin.String?, `quarantineStatus`: kotlin.String?, `manufacturerBatch`: kotlin.String?): LotInfoDto {
+            return FfiConverterTypeLotInfoDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_create_or_update_lot(
+        it, FfiConverterString.lower(`lotNumber`),FfiConverterString.lower(`itemId`),FfiConverterOptionalString.lower(`expirationDate`),FfiConverterOptionalString.lower(`quarantineStatus`),FfiConverterOptionalString.lower(`manufacturerBatch`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(ErpFfiException::class)override fun `createProject`(`name`: kotlin.String, `code`: kotlin.String, `customerId`: kotlin.String?, `billingRateHourly`: kotlin.String, `estimatedHours`: kotlin.String): ProjectDto {
             return FfiConverterTypeProjectDto.lift(
     callWithPointer {
@@ -2148,6 +2411,38 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
 
     
     /**
+     * Export invoice PDF directly to a local filesystem destination
+     */
+    @Throws(ErpFfiException::class)override fun `exportInvoicePdfToFile`(`invoiceId`: kotlin.String, `destinationPath`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_export_invoice_pdf_to_file(
+        it, FfiConverterString.lower(`invoiceId`),FfiConverterString.lower(`destinationPath`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Export purchase order PDF directly to a local filesystem destination
+     */
+    @Throws(ErpFfiException::class)override fun `exportPurchaseOrderPdfToFile`(`poId`: kotlin.String, `destinationPath`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_export_purchase_order_pdf_to_file(
+        it, FfiConverterString.lower(`poId`),FfiConverterString.lower(`destinationPath`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Finalize an invoice and trigger stock deductions
      */
     @Throws(ErpFfiException::class)override fun `finalizeInvoice`(`invoiceId`: kotlin.String): InvoiceDto {
@@ -2180,6 +2475,38 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
 
     
     /**
+     * Generate an offline vector PDF invoice with fixed-point Decimal math & EPC QR code
+     */
+    @Throws(ErpFfiException::class)override fun `generateInvoicePdf`(`invoiceId`: kotlin.String): kotlin.ByteArray {
+            return FfiConverterByteArray.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_generate_invoice_pdf(
+        it, FfiConverterString.lower(`invoiceId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Generate an offline vector PDF purchase order for vendor communication
+     */
+    @Throws(ErpFfiException::class)override fun `generatePurchaseOrderPdf`(`poId`: kotlin.String): kotlin.ByteArray {
+            return FfiConverterByteArray.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_generate_purchase_order_pdf(
+        it, FfiConverterString.lower(`poId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Generate an offline SVG label for thermal/sticker printers
      */
     @Throws(ErpFfiException::class)override fun `generateQrLabelSvg`(`targetUri`: kotlin.String, `title`: kotlin.String, `subtitle`: kotlin.String): kotlin.String {
@@ -2188,6 +2515,22 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
     uniffiRustCallWithError(ErpFfiException) { _status ->
     UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_generate_qr_label_svg(
         it, FfiConverterString.lower(`targetUri`),FfiConverterString.lower(`title`),FfiConverterString.lower(`subtitle`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Automatically create a draft Purchase Order for a low-stock inventory item
+     */
+    @Throws(ErpFfiException::class)override fun `generateReorderPo`(`itemId`: kotlin.String): PurchaseOrderDto {
+            return FfiConverterTypePurchaseOrderDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_generate_reorder_po(
+        it, FfiConverterString.lower(`itemId`),_status)
 }
     }
     )
@@ -2257,6 +2600,38 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
 
     
     /**
+     * Get details of an inventory lot
+     */
+    @Throws(ErpFfiException::class)override fun `getLotInfo`(`lotNumber`: kotlin.String): LotInfoDto? {
+            return FfiConverterOptionalTypeLotInfoDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_get_lot_info(
+        it, FfiConverterString.lower(`lotNumber`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Retrieve list of all items currently at or below their minimum stock threshold
+     */
+    @Throws(ErpFfiException::class)override fun `getLowStockAlerts`(): List<LowStockAlertDto> {
+            return FfiConverterSequenceTypeLowStockAlertDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_get_low_stock_alerts(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Retrieve declarative UI nodes from installed plugins
      */
     @Throws(ErpFfiException::class)override fun `getPluginUiNodes`(`contextView`: kotlin.String): List<PluginUiNodeDto> {
@@ -2301,12 +2676,60 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
     
 
     
+    /**
+     * Get peer-to-peer sync status and connected local LAN nodes
+     */
+    @Throws(ErpFfiException::class)override fun `getSyncStatus`(): SyncStatusDto {
+            return FfiConverterTypeSyncStatusDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_get_sync_status(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(ErpFfiException::class)override fun `getTrialBalance`(): FinancialStatementDto {
             return FfiConverterTypeFinancialStatementDto.lift(
     callWithPointer {
     uniffiRustCallWithError(ErpFfiException) { _status ->
     UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_get_trial_balance(
         it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Get unbilled hours and billable totals summary
+     */
+    @Throws(ErpFfiException::class)override fun `getUnbilledHoursSummary`(`projectId`: kotlin.String?): UnbilledHoursSummaryDto {
+            return FfiConverterTypeUnbilledHoursSummaryDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_get_unbilled_hours_summary(
+        it, FfiConverterOptionalString.lower(`projectId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Retrieve component genealogy tree for a finished work order
+     */
+    @Throws(ErpFfiException::class)override fun `getWorkOrderGenealogy`(`workOrderIdOrNumber`: kotlin.String): ComponentGenealogyDto? {
+            return FfiConverterOptionalTypeComponentGenealogyDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_get_work_order_genealogy(
+        it, FfiConverterString.lower(`workOrderIdOrNumber`),_status)
 }
     }
     )
@@ -2443,6 +2866,22 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
     uniffiRustCallWithError(ErpFfiException) { _status ->
     UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_list_items(
         it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * List project tasks, optionally filtered by project_id
+     */
+    @Throws(ErpFfiException::class)override fun `listProjectTasks`(`projectId`: kotlin.String?): List<ProjectTaskDto> {
+            return FfiConverterSequenceTypeProjectTaskDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_list_project_tasks(
+        it, FfiConverterOptionalString.lower(`projectId`),_status)
 }
     }
     )
@@ -2590,6 +3029,21 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
 
     
     /**
+     * Register a discovered peer on the local subnet (mDNS / UDP zero-config)
+     */
+    @Throws(ErpFfiException::class)override fun `registerPeer`(`nodeId`: kotlin.String, `displayName`: kotlin.String, `ipAddress`: kotlin.String, `port`: kotlin.UShort)
+        = 
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_register_peer(
+        it, FfiConverterString.lower(`nodeId`),FfiConverterString.lower(`displayName`),FfiConverterString.lower(`ipAddress`),FfiConverterUShort.lower(`port`),_status)
+}
+    }
+    
+    
+
+    
+    /**
      * Resolve a scanned QR code or barcode payload
      */
     @Throws(ErpFfiException::class)override fun `resolveQrScan`(`rawPayload`: kotlin.String, `activeContextLocationId`: kotlin.String?): ScanResolutionDto {
@@ -2650,6 +3104,22 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
 
     
     /**
+     * Trigger P2P event log sync across discovered LAN peers
+     */
+    @Throws(ErpFfiException::class)override fun `triggerLanSync`(): SyncStatusDto {
+            return FfiConverterTypeSyncStatusDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_trigger_lan_sync(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Uninstall a WASM plugin by ID
      */
     @Throws(ErpFfiException::class)override fun `uninstallWasmPlugin`(`pluginId`: kotlin.String)
@@ -2676,6 +3146,38 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
 }
     }
     
+    
+
+    
+    /**
+     * Update status of a project task (e.g. Backlog -> In Progress -> Review -> Done)
+     */
+    @Throws(ErpFfiException::class)override fun `updateProjectTaskStatus`(`taskId`: kotlin.String, `newStatus`: kotlin.String): ProjectTaskDto {
+            return FfiConverterTypeProjectTaskDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_update_project_task_status(
+        it, FfiConverterString.lower(`taskId`),FfiConverterString.lower(`newStatus`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Update work order status (Planned -> In Progress -> Quality Check -> Completed) and record state transition
+     */
+    @Throws(ErpFfiException::class)override fun `updateWorkOrderStatus`(`workOrderId`: kotlin.String, `newStatus`: kotlin.String): WorkOrderDto {
+            return FfiConverterTypeWorkOrderDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_update_work_order_status(
+        it, FfiConverterString.lower(`workOrderId`),FfiConverterString.lower(`newStatus`),_status)
+}
+    }
+    )
+    }
     
 
     
@@ -2863,6 +3365,122 @@ public object FfiConverterTypeBomComponentDto: FfiConverterRustBuffer<BomCompone
             FfiConverterString.write(value.`quantity`, buf)
             FfiConverterString.write(value.`scrapPercentage`, buf)
             FfiConverterOptionalString.write(value.`notes`, buf)
+    }
+}
+
+
+
+data class ComponentGenealogyDto (
+    var `workOrderId`: kotlin.String, 
+    var `workOrderNumber`: kotlin.String, 
+    var `finishedItemId`: kotlin.String, 
+    var `finishedSku`: kotlin.String, 
+    var `finishedName`: kotlin.String, 
+    var `finishedLotNumber`: kotlin.String, 
+    var `quantity`: kotlin.String, 
+    var `completedAt`: kotlin.String?, 
+    var `components`: List<ComponentGenealogyEntryDto>
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeComponentGenealogyDto: FfiConverterRustBuffer<ComponentGenealogyDto> {
+    override fun read(buf: ByteBuffer): ComponentGenealogyDto {
+        return ComponentGenealogyDto(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceTypeComponentGenealogyEntryDto.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ComponentGenealogyDto) = (
+            FfiConverterString.allocationSize(value.`workOrderId`) +
+            FfiConverterString.allocationSize(value.`workOrderNumber`) +
+            FfiConverterString.allocationSize(value.`finishedItemId`) +
+            FfiConverterString.allocationSize(value.`finishedSku`) +
+            FfiConverterString.allocationSize(value.`finishedName`) +
+            FfiConverterString.allocationSize(value.`finishedLotNumber`) +
+            FfiConverterString.allocationSize(value.`quantity`) +
+            FfiConverterOptionalString.allocationSize(value.`completedAt`) +
+            FfiConverterSequenceTypeComponentGenealogyEntryDto.allocationSize(value.`components`)
+    )
+
+    override fun write(value: ComponentGenealogyDto, buf: ByteBuffer) {
+            FfiConverterString.write(value.`workOrderId`, buf)
+            FfiConverterString.write(value.`workOrderNumber`, buf)
+            FfiConverterString.write(value.`finishedItemId`, buf)
+            FfiConverterString.write(value.`finishedSku`, buf)
+            FfiConverterString.write(value.`finishedName`, buf)
+            FfiConverterString.write(value.`finishedLotNumber`, buf)
+            FfiConverterString.write(value.`quantity`, buf)
+            FfiConverterOptionalString.write(value.`completedAt`, buf)
+            FfiConverterSequenceTypeComponentGenealogyEntryDto.write(value.`components`, buf)
+    }
+}
+
+
+
+data class ComponentGenealogyEntryDto (
+    var `componentItemId`: kotlin.String, 
+    var `componentSku`: kotlin.String, 
+    var `componentName`: kotlin.String, 
+    var `componentLotNumber`: kotlin.String?, 
+    var `componentQuantity`: kotlin.String, 
+    var `expirationDate`: kotlin.String?, 
+    var `quarantineStatus`: kotlin.String?, 
+    var `manufacturerBatch`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeComponentGenealogyEntryDto: FfiConverterRustBuffer<ComponentGenealogyEntryDto> {
+    override fun read(buf: ByteBuffer): ComponentGenealogyEntryDto {
+        return ComponentGenealogyEntryDto(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ComponentGenealogyEntryDto) = (
+            FfiConverterString.allocationSize(value.`componentItemId`) +
+            FfiConverterString.allocationSize(value.`componentSku`) +
+            FfiConverterString.allocationSize(value.`componentName`) +
+            FfiConverterOptionalString.allocationSize(value.`componentLotNumber`) +
+            FfiConverterString.allocationSize(value.`componentQuantity`) +
+            FfiConverterOptionalString.allocationSize(value.`expirationDate`) +
+            FfiConverterOptionalString.allocationSize(value.`quarantineStatus`) +
+            FfiConverterOptionalString.allocationSize(value.`manufacturerBatch`)
+    )
+
+    override fun write(value: ComponentGenealogyEntryDto, buf: ByteBuffer) {
+            FfiConverterString.write(value.`componentItemId`, buf)
+            FfiConverterString.write(value.`componentSku`, buf)
+            FfiConverterString.write(value.`componentName`, buf)
+            FfiConverterOptionalString.write(value.`componentLotNumber`, buf)
+            FfiConverterString.write(value.`componentQuantity`, buf)
+            FfiConverterOptionalString.write(value.`expirationDate`, buf)
+            FfiConverterOptionalString.write(value.`quarantineStatus`, buf)
+            FfiConverterOptionalString.write(value.`manufacturerBatch`, buf)
     }
 }
 
@@ -3230,7 +3848,13 @@ data class ItemLocationCardDto (
     var `mapY`: kotlin.Double?, 
     var `quantity`: kotlin.String, 
     var `lotNumber`: kotlin.String?, 
-    var `serialNumber`: kotlin.String?
+    var `serialNumber`: kotlin.String?, 
+    var `minStockLevel`: kotlin.String, 
+    var `lotExpirationDate`: kotlin.String?, 
+    var `lotQuarantineStatus`: kotlin.String?, 
+    var `lotManufacturerBatch`: kotlin.String?, 
+    var `isLowStock`: kotlin.Boolean, 
+    var `isExpiredOrExpiring`: kotlin.Boolean
 ) {
     
     companion object
@@ -3256,6 +3880,12 @@ public object FfiConverterTypeItemLocationCardDto: FfiConverterRustBuffer<ItemLo
             FfiConverterString.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -3273,7 +3903,13 @@ public object FfiConverterTypeItemLocationCardDto: FfiConverterRustBuffer<ItemLo
             FfiConverterOptionalDouble.allocationSize(value.`mapY`) +
             FfiConverterString.allocationSize(value.`quantity`) +
             FfiConverterOptionalString.allocationSize(value.`lotNumber`) +
-            FfiConverterOptionalString.allocationSize(value.`serialNumber`)
+            FfiConverterOptionalString.allocationSize(value.`serialNumber`) +
+            FfiConverterString.allocationSize(value.`minStockLevel`) +
+            FfiConverterOptionalString.allocationSize(value.`lotExpirationDate`) +
+            FfiConverterOptionalString.allocationSize(value.`lotQuarantineStatus`) +
+            FfiConverterOptionalString.allocationSize(value.`lotManufacturerBatch`) +
+            FfiConverterBoolean.allocationSize(value.`isLowStock`) +
+            FfiConverterBoolean.allocationSize(value.`isExpiredOrExpiring`)
     )
 
     override fun write(value: ItemLocationCardDto, buf: ByteBuffer) {
@@ -3291,6 +3927,12 @@ public object FfiConverterTypeItemLocationCardDto: FfiConverterRustBuffer<ItemLo
             FfiConverterString.write(value.`quantity`, buf)
             FfiConverterOptionalString.write(value.`lotNumber`, buf)
             FfiConverterOptionalString.write(value.`serialNumber`, buf)
+            FfiConverterString.write(value.`minStockLevel`, buf)
+            FfiConverterOptionalString.write(value.`lotExpirationDate`, buf)
+            FfiConverterOptionalString.write(value.`lotQuarantineStatus`, buf)
+            FfiConverterOptionalString.write(value.`lotManufacturerBatch`, buf)
+            FfiConverterBoolean.write(value.`isLowStock`, buf)
+            FfiConverterBoolean.write(value.`isExpiredOrExpiring`, buf)
     }
 }
 
@@ -3444,6 +4086,114 @@ public object FfiConverterTypeLocationNodeDto: FfiConverterRustBuffer<LocationNo
 
 
 
+data class LotInfoDto (
+    var `lotNumber`: kotlin.String, 
+    var `itemId`: kotlin.String, 
+    var `expirationDate`: kotlin.String?, 
+    var `quarantineStatus`: kotlin.String, 
+    var `manufacturerBatch`: kotlin.String?, 
+    var `createdAt`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLotInfoDto: FfiConverterRustBuffer<LotInfoDto> {
+    override fun read(buf: ByteBuffer): LotInfoDto {
+        return LotInfoDto(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LotInfoDto) = (
+            FfiConverterString.allocationSize(value.`lotNumber`) +
+            FfiConverterString.allocationSize(value.`itemId`) +
+            FfiConverterOptionalString.allocationSize(value.`expirationDate`) +
+            FfiConverterString.allocationSize(value.`quarantineStatus`) +
+            FfiConverterOptionalString.allocationSize(value.`manufacturerBatch`) +
+            FfiConverterString.allocationSize(value.`createdAt`)
+    )
+
+    override fun write(value: LotInfoDto, buf: ByteBuffer) {
+            FfiConverterString.write(value.`lotNumber`, buf)
+            FfiConverterString.write(value.`itemId`, buf)
+            FfiConverterOptionalString.write(value.`expirationDate`, buf)
+            FfiConverterString.write(value.`quarantineStatus`, buf)
+            FfiConverterOptionalString.write(value.`manufacturerBatch`, buf)
+            FfiConverterString.write(value.`createdAt`, buf)
+    }
+}
+
+
+
+data class LowStockAlertDto (
+    var `itemId`: kotlin.String, 
+    var `sku`: kotlin.String, 
+    var `name`: kotlin.String, 
+    var `unit`: kotlin.String, 
+    var `currentStock`: kotlin.String, 
+    var `minStockLevel`: kotlin.String, 
+    var `suggestedReorderQty`: kotlin.String, 
+    var `preferredSupplierId`: kotlin.String?, 
+    var `preferredSupplierName`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLowStockAlertDto: FfiConverterRustBuffer<LowStockAlertDto> {
+    override fun read(buf: ByteBuffer): LowStockAlertDto {
+        return LowStockAlertDto(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LowStockAlertDto) = (
+            FfiConverterString.allocationSize(value.`itemId`) +
+            FfiConverterString.allocationSize(value.`sku`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterString.allocationSize(value.`unit`) +
+            FfiConverterString.allocationSize(value.`currentStock`) +
+            FfiConverterString.allocationSize(value.`minStockLevel`) +
+            FfiConverterString.allocationSize(value.`suggestedReorderQty`) +
+            FfiConverterOptionalString.allocationSize(value.`preferredSupplierId`) +
+            FfiConverterOptionalString.allocationSize(value.`preferredSupplierName`)
+    )
+
+    override fun write(value: LowStockAlertDto, buf: ByteBuffer) {
+            FfiConverterString.write(value.`itemId`, buf)
+            FfiConverterString.write(value.`sku`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterString.write(value.`unit`, buf)
+            FfiConverterString.write(value.`currentStock`, buf)
+            FfiConverterString.write(value.`minStockLevel`, buf)
+            FfiConverterString.write(value.`suggestedReorderQty`, buf)
+            FfiConverterOptionalString.write(value.`preferredSupplierId`, buf)
+            FfiConverterOptionalString.write(value.`preferredSupplierName`, buf)
+    }
+}
+
+
+
 data class ModuleInfoDto (
     var `id`: kotlin.String, 
     var `name`: kotlin.String, 
@@ -3591,6 +4341,54 @@ public object FfiConverterTypePaymentEntryDto: FfiConverterRustBuffer<PaymentEnt
             FfiConverterString.write(value.`amount`, buf)
             FfiConverterOptionalString.write(value.`referenceInvoiceId`, buf)
             FfiConverterString.write(value.`paymentMethod`, buf)
+    }
+}
+
+
+
+data class PeerNodeDto (
+    var `nodeId`: kotlin.String, 
+    var `displayName`: kotlin.String, 
+    var `ipAddress`: kotlin.String, 
+    var `port`: kotlin.UShort, 
+    var `lastSeenSecondsAgo`: kotlin.ULong, 
+    var `isSynced`: kotlin.Boolean
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePeerNodeDto: FfiConverterRustBuffer<PeerNodeDto> {
+    override fun read(buf: ByteBuffer): PeerNodeDto {
+        return PeerNodeDto(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUShort.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PeerNodeDto) = (
+            FfiConverterString.allocationSize(value.`nodeId`) +
+            FfiConverterString.allocationSize(value.`displayName`) +
+            FfiConverterString.allocationSize(value.`ipAddress`) +
+            FfiConverterUShort.allocationSize(value.`port`) +
+            FfiConverterULong.allocationSize(value.`lastSeenSecondsAgo`) +
+            FfiConverterBoolean.allocationSize(value.`isSynced`)
+    )
+
+    override fun write(value: PeerNodeDto, buf: ByteBuffer) {
+            FfiConverterString.write(value.`nodeId`, buf)
+            FfiConverterString.write(value.`displayName`, buf)
+            FfiConverterString.write(value.`ipAddress`, buf)
+            FfiConverterUShort.write(value.`port`, buf)
+            FfiConverterULong.write(value.`lastSeenSecondsAgo`, buf)
+            FfiConverterBoolean.write(value.`isSynced`, buf)
     }
 }
 
@@ -4076,6 +4874,58 @@ public object FfiConverterTypeScanResolutionDto: FfiConverterRustBuffer<ScanReso
 
 
 
+data class SyncStatusDto (
+    var `connectedPeersCount`: kotlin.UInt, 
+    var `unsyncedEventsCount`: kotlin.UInt, 
+    var `totalEventsCount`: kotlin.UInt, 
+    var `lastSyncTimestamp`: kotlin.String, 
+    var `convergenceState`: kotlin.String, 
+    var `localHlc`: kotlin.String, 
+    var `peers`: List<PeerNodeDto>
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSyncStatusDto: FfiConverterRustBuffer<SyncStatusDto> {
+    override fun read(buf: ByteBuffer): SyncStatusDto {
+        return SyncStatusDto(
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceTypePeerNodeDto.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SyncStatusDto) = (
+            FfiConverterUInt.allocationSize(value.`connectedPeersCount`) +
+            FfiConverterUInt.allocationSize(value.`unsyncedEventsCount`) +
+            FfiConverterUInt.allocationSize(value.`totalEventsCount`) +
+            FfiConverterString.allocationSize(value.`lastSyncTimestamp`) +
+            FfiConverterString.allocationSize(value.`convergenceState`) +
+            FfiConverterString.allocationSize(value.`localHlc`) +
+            FfiConverterSequenceTypePeerNodeDto.allocationSize(value.`peers`)
+    )
+
+    override fun write(value: SyncStatusDto, buf: ByteBuffer) {
+            FfiConverterUInt.write(value.`connectedPeersCount`, buf)
+            FfiConverterUInt.write(value.`unsyncedEventsCount`, buf)
+            FfiConverterUInt.write(value.`totalEventsCount`, buf)
+            FfiConverterString.write(value.`lastSyncTimestamp`, buf)
+            FfiConverterString.write(value.`convergenceState`, buf)
+            FfiConverterString.write(value.`localHlc`, buf)
+            FfiConverterSequenceTypePeerNodeDto.write(value.`peers`, buf)
+    }
+}
+
+
+
 data class TimesheetEntryDto (
     var `id`: kotlin.String, 
     var `projectId`: kotlin.String, 
@@ -4195,6 +5045,42 @@ public object FfiConverterTypeTrialBalanceRowDto: FfiConverterRustBuffer<TrialBa
             FfiConverterString.write(value.`totalDebit`, buf)
             FfiConverterString.write(value.`totalCredit`, buf)
             FfiConverterString.write(value.`netBalance`, buf)
+    }
+}
+
+
+
+data class UnbilledHoursSummaryDto (
+    var `totalUnbilledHours`: kotlin.String, 
+    var `totalUnbilledAmount`: kotlin.String, 
+    var `unbilledEntriesCount`: kotlin.UInt
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeUnbilledHoursSummaryDto: FfiConverterRustBuffer<UnbilledHoursSummaryDto> {
+    override fun read(buf: ByteBuffer): UnbilledHoursSummaryDto {
+        return UnbilledHoursSummaryDto(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: UnbilledHoursSummaryDto) = (
+            FfiConverterString.allocationSize(value.`totalUnbilledHours`) +
+            FfiConverterString.allocationSize(value.`totalUnbilledAmount`) +
+            FfiConverterUInt.allocationSize(value.`unbilledEntriesCount`)
+    )
+
+    override fun write(value: UnbilledHoursSummaryDto, buf: ByteBuffer) {
+            FfiConverterString.write(value.`totalUnbilledHours`, buf)
+            FfiConverterString.write(value.`totalUnbilledAmount`, buf)
+            FfiConverterUInt.write(value.`unbilledEntriesCount`, buf)
     }
 }
 
@@ -4550,6 +5436,38 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeComponentGenealogyDto: FfiConverterRustBuffer<ComponentGenealogyDto?> {
+    override fun read(buf: ByteBuffer): ComponentGenealogyDto? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeComponentGenealogyDto.read(buf)
+    }
+
+    override fun allocationSize(value: ComponentGenealogyDto?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeComponentGenealogyDto.allocationSize(value)
+        }
+    }
+
+    override fun write(value: ComponentGenealogyDto?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeComponentGenealogyDto.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeItemDto: FfiConverterRustBuffer<ItemDto?> {
     override fun read(buf: ByteBuffer): ItemDto? {
         if (buf.get().toInt() == 0) {
@@ -4604,6 +5522,38 @@ public object FfiConverterOptionalTypeLocationDto: FfiConverterRustBuffer<Locati
         } else {
             buf.put(1)
             FfiConverterTypeLocationDto.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeLotInfoDto: FfiConverterRustBuffer<LotInfoDto?> {
+    override fun read(buf: ByteBuffer): LotInfoDto? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeLotInfoDto.read(buf)
+    }
+
+    override fun allocationSize(value: LotInfoDto?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeLotInfoDto.allocationSize(value)
+        }
+    }
+
+    override fun write(value: LotInfoDto?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeLotInfoDto.write(value, buf)
         }
     }
 }
@@ -4716,6 +5666,34 @@ public object FfiConverterSequenceTypeBomComponentDto: FfiConverterRustBuffer<Li
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeBomComponentDto.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeComponentGenealogyEntryDto: FfiConverterRustBuffer<List<ComponentGenealogyEntryDto>> {
+    override fun read(buf: ByteBuffer): List<ComponentGenealogyEntryDto> {
+        val len = buf.getInt()
+        return List<ComponentGenealogyEntryDto>(len) {
+            FfiConverterTypeComponentGenealogyEntryDto.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<ComponentGenealogyEntryDto>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeComponentGenealogyEntryDto.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<ComponentGenealogyEntryDto>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeComponentGenealogyEntryDto.write(it, buf)
         }
     }
 }
@@ -4978,6 +5956,34 @@ public object FfiConverterSequenceTypeLocationNodeDto: FfiConverterRustBuffer<Li
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeLowStockAlertDto: FfiConverterRustBuffer<List<LowStockAlertDto>> {
+    override fun read(buf: ByteBuffer): List<LowStockAlertDto> {
+        val len = buf.getInt()
+        return List<LowStockAlertDto>(len) {
+            FfiConverterTypeLowStockAlertDto.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<LowStockAlertDto>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeLowStockAlertDto.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<LowStockAlertDto>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeLowStockAlertDto.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeModuleInfoDto: FfiConverterRustBuffer<List<ModuleInfoDto>> {
     override fun read(buf: ByteBuffer): List<ModuleInfoDto> {
         val len = buf.getInt()
@@ -5024,6 +6030,34 @@ public object FfiConverterSequenceTypeModuleRouteDto: FfiConverterRustBuffer<Lis
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeModuleRouteDto.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypePeerNodeDto: FfiConverterRustBuffer<List<PeerNodeDto>> {
+    override fun read(buf: ByteBuffer): List<PeerNodeDto> {
+        val len = buf.getInt()
+        return List<PeerNodeDto>(len) {
+            FfiConverterTypePeerNodeDto.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<PeerNodeDto>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypePeerNodeDto.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<PeerNodeDto>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypePeerNodeDto.write(it, buf)
         }
     }
 }
@@ -5108,6 +6142,34 @@ public object FfiConverterSequenceTypeProjectDto: FfiConverterRustBuffer<List<Pr
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeProjectDto.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeProjectTaskDto: FfiConverterRustBuffer<List<ProjectTaskDto>> {
+    override fun read(buf: ByteBuffer): List<ProjectTaskDto> {
+        val len = buf.getInt()
+        return List<ProjectTaskDto>(len) {
+            FfiConverterTypeProjectTaskDto.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<ProjectTaskDto>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeProjectTaskDto.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<ProjectTaskDto>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeProjectTaskDto.write(it, buf)
         }
     }
 }

@@ -852,6 +852,7 @@ dependencies = [
 name = "erp-ffi"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "erp-kernel",
  "erp-plugin-host",
  "mod-accounting",
@@ -862,6 +863,8 @@ dependencies = [
  "mod-projects",
  "mod-purchasing",
  "parking_lot",
+ "qrcode",
+ "rusqlite",
  "rust_decimal",
  "serde",
  "serde_json",
