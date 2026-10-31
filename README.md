@@ -164,7 +164,6 @@ Open the **Settings** view in Ledger ERP, provide the compiled `.wasm` file path
 
 - **LEDGER-29** - Mobile biometric authentication integration (FaceID / Fingerprint) via platform Keystores
 - **LEDGER-30** - Mesh relay synchronization for air-gapped field vans and offline pop-up workshops
-- **LEDGER-31** - AI-assisted supplier price fluctuation detection and procurement forecasting
 - **LEDGER-32** - Direct CAD / STEP file component visualization in BOM genealogy trees
 
 ## License
