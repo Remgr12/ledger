@@ -1,168 +1,142 @@
-# Ledger ERP
+<div align="center">
+  <h1>ledger</h1>
 
-> An easy-to-use, local-first, modular Enterprise Resource Planning system built for sole proprietors, workshops, craftsmen, and small businesses.
+  <p><strong>An easy-to-use, local-first ERP application for craftsmen, workshops, and small manufacturers.</strong></p>
 
-Unlike traditional monolithic or cloud-hosted ERPs that require expensive servers, external databases, continuous internet connectivity, and complex IT infrastructure, **Ledger ERP** is designed from the ground up to be **offline-first**, **self-contained**, and **blazingly fast**.
+  <p>
+    <a href="#credits"><img alt="Lead developer" src="https://img.shields.io/badge/lead%20developer-Zsombor%20Simon-58a9ff" /></a>
+    <a href="https://git.soventa.tech/moha/ledger"><img alt="Repository" src="https://img.shields.io/badge/forgejo-git.soventa.tech-58a9ff" /></a>
+    <a href="https://git.soventa.tech/moha/ledger/releases"><img alt="Release" src="https://img.shields.io/badge/release-v0.0.4-58a9ff" /></a>
+    <a href="#license"><img alt="License" src="https://img.shields.io/badge/license-LGPL--2.1-9e6bfa" /></a>
+  </p>
+</div>
 
----
+ledger is a multi-platform, local-first ERP and warehouse management application built around an embedded SQLite engine and domain modules written in Rust, coupled with a Compose Multiplatform interface. It features a modern and intuitive workflow for spatial inventory, double-entry accounting, purchasing, manufacturing, invoicing, and peer-to-peer sync without cloud lock-in.
 
-## ⚡ Key Highlights & Capabilities
+## Features
 
-* **Local-First & Zero-Cloud Dependency**: Runs on an embedded **SQLite** engine operating with Write-Ahead Logging (WAL) for microsecond queries and offline durability.
-* **Offline Vector PDF Generation with EPC QR GiroCode**:
-  * Pure vector PDF-1.4 generation engine in native Rust (`crates/erp-ffi/src/pdf_generator.rs`) without external browser or cloud dependencies.
-  * Invoices feature vector European EPC QR payment codes (SEPA QR / GiroCode) for 1-scan mobile banking payments.
-  * Direct export for Purchase Orders and Invoices with in-app preview dialogs.
-* **Peer-to-Peer Local Network Database Sync (LAN / mDNS)**:
-  * Zero-configuration peer discovery over local Wi-Fi / Ethernet via mDNS.
-  * Event-driven CRDT convergence engine using Hybrid Logical Clock (HLC) timestamps for deterministic causal conflict resolution.
-  * Real-time top bar status indicator and Settings sync management dashboard with manual sync trigger.
-* **Automated Low-Stock Alerts & 1-Click PO Reordering**:
-  * Continuous tracking against SKU and location-level `min_stock_level` thresholds.
-  * Prominent low-stock warning banners and card badges in the Item Locator.
-  * 1-click "Generate Reorder PO" action producing populated draft purchase orders with suggested replenishment quantities.
-* **Interactive Kanban Workflow Boards**:
-  * Work Order Kanban swimlanes (`Planned`, `In Progress`, `Quality Check`, `Completed`) with atomic state transitions recorded in the event log.
-  * Project Task Kanban board with status transitions, quick time logging chips (+1h, +2h, +4h, +8h), and unbilled hours summary.
-* **Lot Expiration Tracking & Component Genealogy Tree**:
-  * Complete lot tracking with expiration timestamps, manufacturer batch codes, and QA quarantine states in `mod-inventory`.
-  * Visual expiration warning chips and quarantine putaway protection in Rapid Scan Move HUD.
-  * Interactive Component Genealogy Tree modal viewer in Manufacturing, detailing the exact component lot numbers used in BOM assembly.
-* **Spatial Inventory & 2D Floor Plan Radar**:
-  * Self-referencing storage tree (`Warehouse` → `Room` → `Rack` → `Shelf` → `Bin`).
-  * Interactive 2D drag-and-drop floor plan canvas with coordinate persistence in SQLite.
-  * Instant "Where Is It?" search with breadcrumb navigation and visual shelf-level indicators.
-* **Rapid Scan-to-Move & Cycle Count HUD**:
-  * High-velocity 2-tap stock transfer workflow (Scan Bin QR → Scan Item Barcode → Done).
-  * Cycle count audit mode for reconciling physical stock with the immutable stock ledger.
-  * Hardware camera barcode scanning on Android (CameraX + ML Kit) and iOS (AVFoundation).
-  * USB/Bluetooth HID keyboard wedge barcode scanner support on Desktop.
-* **Offline Thermal Label Printing Station**:
-  * Direct binary ESC/POS and plain-text TSPL/ZPL command generation with native QR code commands (`GS ( k`).
-  * Supports standard thermal rolls (Brother 62mm continuous DK-22205 / die-cut DK-11209), standard Avery die-cut sheets (5160 / 24-up), and POS receipt printers (58mm/80mm).
-  * Dispatches to system print dialog (OS spooler) or raw serial/USB devices (`/dev/usb/lp0`).
-* **Double-Entry General Ledger & Invoicing**:
-  * Strict accounting invariants: total debits must equal total credits before commitment.
-  * Pre-seeded standard Chart of Accounts (Assets, Liabilities, Equity, Revenue, Expenses).
-  * Real-time Trial Balance and Profit & Loss generation.
-  * Sales invoicing with fixed-point `rust_decimal::Decimal` precision (zero floating-point errors).
-* **Sandboxed WebAssembly (WASM) Plugin Extensibility**:
-  * Securely extend functionality using compiled `.wasm` modules (`wasm32-wasip1`) running in an embedded Extism sandbox.
-  * In-app plugin installer and management UI in Settings.
-  * Declarative dynamic UI node trees rendered natively with Compose Multiplatform.
-* **Local Database Backup & Data Portability**:
-  * Safe SQLite full database backup with WAL flushing (`PRAGMA wal_checkpoint(TRUNCATE)`).
-  * CSV and JSON data export for inventory items, contacts, and GL journal entries.
-  * Bulk data ingestion from CSV spreadsheets.
+- **Spatial inventory hierarchy** - self-referencing warehouse tree (`Warehouse` → `Room` → `Rack` → `Shelf` → `Bin`) with instant search and shelf-level indicators
+- **Floor plan radar** - interactive 2D drag-and-drop canvas for rooms and racks with coordinate persistence in SQLite
+- **Rapid scan-to-move** - high-velocity 2-tap stock transfer HUD, cycle count audit mode, and camera/hardware barcode scanning
+- **Thermal label printing** - direct print station for Brother 62mm rolls, Avery 5160 / 24-up sheets, ESC/POS, and TSPL printer queues
+- **Manufacturing & BOM** - multi-level Bills of Materials, component consumption, workstation capacity planning, and Gantt scheduling
+- **Component genealogy** - lot expiration tracking, QA quarantine validation, and end-to-end component genealogy trees
+- **Kanban workflow boards** - drag-and-drop status swimlanes for work orders and project tasks with time tracking chips
+- **Invoicing & Purchasing** - fixed-point Decimal arithmetic, automated low-stock reorder PO generation, and recurring subscriptions
+- **Vector PDF generation** - offline PDF-1.4 generation with European EPC QR (GiroCode) and PDF/A-3 Factur-X / ZUGFeRD 2.2 XML
+- **Point of Sale (POS)** - offline touch-friendly cashier register, split tenders, cash drawer kick pulse (`ESC p`), and shift X/Z reports
+- **Double-entry general ledger** - Chart of Accounts, trial balance, P&L, multi-currency accounting, and realized FX gain/loss
+- **Serialized asset tracking** - individual serial numbers, service histories, maintenance logs, and RMA claim workflows
+- **Multi-warehouse transfers** - two-step dispatch and receipt workflows with virtual in-transit inventory tracking
+- **Offline OCR intake** - on-device receipt and vendor invoice intake with bounding-box verification
+- **Local-first P2P sync** - peer discovery over LAN/mDNS using Hybrid Logical Clock (HLC) and CRDT event convergence with PSK/QR pairing
+- **Automated backups** - safe SQLite WAL flush checkpoints, compressed `.db.zst` snapshots, NAS/SFTP sync, and 1-click USB drive sync
+- **Plugin system** - sandboxed WebAssembly runtime (Wasmtime) with manifest parsing and dynamic UI slot injection
+- **Cross-platform** - native desktop (Linux, macOS, Windows) and mobile (Android, iOS) via Compose Multiplatform
 
----
+## Technology Stack
 
-## 🏗️ Architecture
+| Layer | Technology |
+|-------|-----------|
+| Kernel | Rust (`crates/erp-kernel`) - SQLite, migrations, event log, CRDT/HLC sync, backup engine |
+| FFI Bridge | Rust (`crates/erp-ffi`) + Mozilla UniFFI (C-ABI / JNA) |
+| UI Framework | Kotlin + Compose Multiplatform 1.6 (Desktop, Android, iOS) |
+| Database | SQLite 3 (`rusqlite`) with WAL mode + ChaCha20 encryption at rest |
+| Accounting | `rust_decimal` fixed-point 128-bit arithmetic |
+| PDF Engine | Pure Rust vector PDF-1.4 generator + PDF/A-3 Factur-X XML |
+| Barcode & QR | `qrcode` + native platform bindings (CameraX, AVFoundation, ESC/POS) |
+| P2P & Discovery | LAN / mDNS zero-conf + CRDT event log convergence |
+| Plugins | WebAssembly via Wasmtime (`wasm32-wasip1`) |
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│               Compose Multiplatform UI (Desktop, Android, iOS)   │
-│  - Spatial Inventory HUD  - Invoicing & PDF  - Manufacturing    │
-│  - Accounting / GL        - Purchasing & PO  - Kanban Boards    │
-│  - Interactive Floor Plan - Camera Barcode   - Genealogy Trees  │
-│  - Thermal Label Station  - P2P LAN Sync     - WASM Plugins     │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ Mozilla UniFFI (JNA / C-ABI)
-                                │ Auto-bundled via compileRustLib
-┌───────────────────────────────▼─────────────────────────────────┐
-│                        ErpEngine (Rust Core)                    │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │ Modules: Inventory, Contacts, Invoicing, Accounting,        │ │
-│ │          Purchasing, Manufacturing, Projects                │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│ ┌───────────────────────┐ ┌───────────────────────────────────┐ │
-│ │ Event Bus & HLC Clock │ │ WebAssembly Plugin Host (Extism)  │ │
-│ └───────────────────────┘ └───────────────────────────────────┘ │
-│ ┌───────────────────────┐ ┌───────────────────────────────────┐ │
-│ │ P2P LAN/mDNS Sync     │ │ Pure Vector PDF-1.4 Generator     │ │
-│ │ (CRDT Event Exchange) │ │ (Fixed-point Decimal & EPC QR)    │ │
-│ └───────────────────────┘ └───────────────────────────────────┘ │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │ SQLite Database Engine (WAL Mode, rusqlite with safe backup)│ │
-│ └─────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📦 Project Structure
+## Project Structure
 
 ```
 ledger/
 ├── .githooks/                # Tracked git pre-commit and pre-push hooks
+├── Cargo.toml                # Rust workspace configuration
 ├── crates/
-│   ├── erp-kernel/           # SQLite connection pool, HLC clock, event log, P2P CRDT sync
-│   ├── erp-plugin-host/      # Extism WebAssembly runtime & declarative UI layout engine
-│   ├── erp-ffi/              # Mozilla UniFFI bindings, ErpEngine, & pure vector PDF generator
-│   ├── erp-server/           # Headless Axum server & web management console
+│   ├── erp-kernel/           # Core engine: SQLite migrations, event log, CRDT/HLC sync,
+│   │                         #   crypto, backup scheduler, WASM runtime
+│   ├── erp-ffi/              # UniFFI interface, DTOs, vector PDF generator, FFI engine
+│   ├── erp-server/           # Headless Axum server & management console
 │   ├── erp-cli/              # Terminal CLI (ledger-cli) for offline warehouse operations
-│   └── modules/
-│       ├── mod-inventory/    # Location tree, stock ledger, QR codes, floor plan, lot tracking
-│       ├── mod-contacts/     # Customer, vendor, and supplier directory
-│       ├── mod-invoicing/    # Invoices, lines, tax calculations, and status transitions
-│       ├── mod-accounting/   # Chart of accounts, double-entry GL, trial balance, P&L
-│       ├── mod-purchasing/   # Purchase orders, goods receipts, and low-stock reorder
-│       ├── mod-manufacturing/# Bills of materials, work orders, Kanban, component genealogy
-│       └── mod-projects/     # Projects, timesheets, Kanban boards, unbilled summaries
+│   └── modules/              # Modular domain business engines
+│       ├── mod-accounting/   # Chart of accounts, double-entry GL, trial balance, P&L, FX
+│       ├── mod-contacts/     # Customers, suppliers, vendors, and CRM directory
+│       ├── mod-inventory/    # Spatial hierarchy, stock levels, lot tracking, transfers
+│       ├── mod-invoicing/    # Invoices, lines, recurring billing, Factur-X XML
+│       ├── mod-manufacturing/# BOMs, work orders, component genealogy, workstations
+│       ├── mod-projects/     # Projects, timesheets, Kanban boards, unbilled summaries
+│       └── mod-purchasing/   # Purchase orders, OCR intake, goods receipts, reorders
 ├── composeApp/               # Compose Multiplatform UI (Desktop, Android, iOS)
-│   ├── src/commonMain/       # Shared UI features, screens, and ErpBridge
-│   ├── src/desktopMain/      # Desktop entrypoint, JNA library loader, thermal printing
-│   ├── src/androidMain/      # CameraX & ML Kit mobile barcode scanner
-│   ├── src/iosMain/          # AVFoundation iOS barcode scanner
-│   └── src/desktopTest/      # Desktop unit & native integration tests
-└── plugins/
-    └── sample-supplier-plugin/ # Reference WASM plugin (supplier GS1 decoding & QA badges)
+│   ├── build.gradle.kts      # Gradle configuration & compileRustLib automation
+│   └── src/
+│       ├── commonMain/       # Shared UI features, screens, navigation, ErpBridge
+│       │   └── kotlin/
+│       │       ├── core/     # ErpBridge UniFFI wrapper & state cache
+│       │       ├── features/ # Screens: inventory, accounting, manufacturing, etc.
+│       │       └── uniffi/   # Auto-generated UniFFI Kotlin bindings
+│       ├── desktopMain/      # Desktop entrypoint, JNA library loader, thermal printing
+│       ├── androidMain/      # CameraX & ML Kit mobile barcode scanner
+│       ├── iosMain/          # AVFoundation iOS barcode scanner
+│       └── desktopTest/      # Desktop feature & integration test suite
+└── plugins/                  # WebAssembly extension plugins (sample-supplier-plugin)
 ```
 
----
+## Keybinds
 
-## 🚀 Getting Started
+| Keys | Action |
+|------|--------|
+| `Ctrl F` | Item Locator Screen |
+| `Ctrl S` | Rapid Scan & Move HUD |
+| `Ctrl T` | Storage Location Tree & Floor Plan |
+| `Ctrl P` | QR Label Printing Station |
+| `Ctrl I` | Invoicing Screen & Vector PDF Export |
+| `Ctrl A` | Accounting / General Ledger |
+| `Ctrl B` | Purchasing & Purchase Orders |
+| `Ctrl O` | Manufacturing & Work Order Kanban |
+| `Ctrl J` | Projects & Timesheet Kanban |
+| `Ctrl M` | Settings, P2P Sync & Plugins |
+| `Esc` | Clear active context location / close dialogs |
+
+All keybinds are globally registered on desktop platforms for rapid warehouse inventory intake, status transitions, and navigation.
+
+## Building
 
 ### Prerequisites
-* **Rust**: 1.80+ (`cargo`, `rustc`, `wasm32-wasip1` target for plugins)
-* **Java Development Kit**: OpenJDK 21 (for Compose Multiplatform Desktop)
-* **Build Tools**: CMake, Make, GCC/Clang
 
-### 1. Configure Git Hooks
-To ensure automatic code quality and test validation before commits and pushes:
+- Rust toolchain (`rustup`, 1.80+)
+- JDK 17+ (e.g. OpenJDK 21 for Compose Multiplatform Desktop)
+- Android SDK (for mobile builds)
+
+### Development
+
 ```bash
+git clone https://git.soventa.tech/moha/ledger.git
+cd ledger
+
+# Configure tracked git hooks
 git config core.hooksPath .githooks
 chmod +x .githooks/pre-commit .githooks/pre-push
-```
 
-### 2. Build Core Rust Crates
-```bash
-# Build all crates in release mode
-cargo build --release
-
-# Run Rust unit and integration test suite across all crates
-cargo test --workspace
-```
-
-### 3. Run Desktop Application
-The Gradle build automatically compiles the Rust FFI library and packages `liberp_ffi.so` directly into the classpath:
-
-```bash
+# Launch the desktop app (automatically compiles native Rust library via compileRustLib)
 cd composeApp
-
-# Launch desktop app (automatically runs compileRustLib)
 ./gradlew run
 ```
 
-### 4. Run Desktop Integration Tests
-```bash
-cd composeApp
+### Running Tests
 
-# Runs NativeLoadTest, ThermalPrintingTest, BackupAndPluginTest, and V003FeaturesTest
+```bash
+# Run Rust workspace unit and integration tests
+cargo test --workspace
+
+# Run Kotlin Compose desktop integration test suite
+cd composeApp
 ./gradlew desktopTest
 ```
 
-### 5. Build Standalone Desktop JAR
+### Production Build
+
 ```bash
 cd composeApp
 
@@ -170,81 +144,38 @@ cd composeApp
 ./gradlew desktopJar
 ```
 
----
-
-## ⌨️ Desktop Keyboard Shortcuts
-
-| Shortcut | Screen / Action |
-| :--- | :--- |
-| `Ctrl / Cmd + F` | Item Locator Screen |
-| `Ctrl / Cmd + S` | Rapid Scan & Move HUD |
-| `Ctrl / Cmd + T` | Storage Location Tree & Floor Plan |
-| `Ctrl / Cmd + P` | QR Label Printing Station |
-| `Ctrl / Cmd + I` | Invoicing Screen & Vector PDF Export |
-| `Ctrl / Cmd + A` | Accounting / General Ledger |
-| `Ctrl / Cmd + B` | Purchasing & POs |
-| `Ctrl / Cmd + O` | Manufacturing & Work Order Kanban |
-| `Ctrl / Cmd + J` | Projects & Timesheet Kanban |
-| `Ctrl / Cmd + M` | Settings, P2P Sync & Plugins |
-| `Escape` | Clear active context location |
-
----
-
-## 🔌 Building WASM Plugins
+### Building WASM Plugins
 
 ```bash
 cd plugins/sample-supplier-plugin
-
-# Compile to WebAssembly targeting WASI
 cargo build --target wasm32-wasip1 --release
-
-# Copy to runtime directory
-cp target/wasm32-wasip1/release/sample_supplier_plugin.wasm ../sample_supplier_plugin.wasm
 ```
 
-Open the **Settings** view in Ledger ERP, provide the file path, and click **Install & Activate .wasm Module** to hot-reload the plugin into the UI.
+Open the **Settings** view in Ledger ERP, provide the compiled `.wasm` file path, and click **Install & Activate .wasm Module** to hot-reload the plugin into the UI.
 
----
+## Release History
 
-## 🏷️ Release History
+- **v0.0.4** - Batch barcode printing (LEDGER-16), BLE hardware scanners & digital scales (LEDGER-17), multi-currency accounting (LEDGER-18), recurring subscription invoicing (LEDGER-19), ABC Pareto inventory & dead-stock heatmaps (LEDGER-20), database encryption at rest & PSK/QR P2P sync (LEDGER-21), offline OCR receipt intake (LEDGER-22), serialized asset tracking & RMA (LEDGER-23), offline POS cashier register (LEDGER-24), multi-warehouse stock transfer orders (LEDGER-25), workstation capacity planning & Gantt scheduling (LEDGER-26), automated NAS/USB backups (LEDGER-27), European e-invoicing Factur-X / ZUGFeRD 2.2 (LEDGER-28)
+- **v0.0.3** - Vector PDF generation for invoices & POs with EPC QR GiroCode (LEDGER-11), LAN/mDNS P2P sync (LEDGER-12), automated low-stock reorder alerts (LEDGER-13), interactive Kanban boards (LEDGER-14), lot expiration tracking & component genealogy tree (LEDGER-15), tracked git hooks
+- **v0.0.2** - Automated native UniFFI packaging (`compileRustLib`), drag-and-drop 2D floor plan radar, camera barcode scanning on Android/iOS, thermal label printing (ESC/POS & TSPL), SQLite backup & export/import, in-app WASM plugin manager
+- **v0.0.1** - Initial multi-module core architecture, Mozilla UniFFI bridging, basic Compose Multiplatform navigation, double-entry GL, and spatial inventory hierarchy
 
-* **v0.0.4**:
-  * **LEDGER-16**: Batch barcode/label printing and multi-up sheet PDF layouts (Avery 5160 30-up Letter, Avery 24-up A4, and thermal printer streaming).
-  * **LEDGER-17**: Hardware BLE barcode scanner & digital weight scale integration (SPP/HID over GATT, live tare/gross streaming, piece counting).
-  * **LEDGER-18**: Multi-currency accounting & offline FX rate tables (dual-currency GL entries, automated realized FX gain/loss journal adjustments).
-  * **LEDGER-19**: Recurring subscription invoicing & client retainer deposit tracking (automated billing schedules, deferred revenue drawdown against timesheets).
-  * **LEDGER-20**: Advanced inventory Pareto ABC analysis, aging dead-stock heatmaps, and dynamic Wilson EOQ & safety stock calculation.
-  * **LEDGER-21**: Database encryption at rest (transparent ChaCha20 / SQLCipher) & authenticated P2P LAN sync via Pre-Shared Key (PSK) and QR code pairing (`erp://pair?...`).
-  * **LEDGER-22**: On-device offline OCR receipt and vendor invoice intake (heuristic parser with bounding-box extraction, auto-draft purchase orders).
-  * **LEDGER-23**: Individual serialized asset tracking, post-sale warranty validation, calibration tracking, and RMA claim workflows (`erp://serial/<sn>`).
-  * **LEDGER-24**: Offline POS cashier mode with touch-friendly register, cash drawer solenoid kick (`ESC p 0 25 250`), receipt printing, and X/Z shift reconciliation.
-  * **LEDGER-25**: Multi-warehouse stock transfer orders, in-transit virtual holding locations, and dispatch/arrival mobile barcode scanning with variance tracking.
-  * **LEDGER-26**: Workstation capacity planning, machine operational calendar hours, and interactive Gantt / timeline production scheduling in Manufacturing.
-  * **LEDGER-27**: Automated local network NAS/SMB/SFTP backup scheduler with WAL checkpointing (`PRAGMA wal_checkpoint(TRUNCATE)`), zstandard compression, and 1-click external USB drive sync.
-  * **LEDGER-28**: European B2B e-invoicing compliance with hybrid PDF/A-3 Factur-X / ZUGFeRD 2.2 XML embedding (`factur-x.xml`) and offline EN 16931 Schematron validation.
-* **v0.0.3**:
-  * **LEDGER-11**: Offline pure vector PDF-1.4 generation for Invoices and Purchase Orders with European EPC QR GiroCode (SEPA QR) and fixed-point Decimal arithmetic.
-  * **LEDGER-12**: Peer-to-peer local network database synchronization over LAN/mDNS using Hybrid Logical Clock (HLC) and CRDT event log convergence.
-  * **LEDGER-13**: Automated low-stock monitoring against `min_stock_level` thresholds with 1-click draft PO generation and replenishment.
-  * **LEDGER-14**: Interactive drag-and-drop Kanban workflow boards for Projects and Work Orders with status swimlanes and quick timesheet logging chips.
-  * **LEDGER-15**: Lot expiration date tracking, QA quarantine states, putaway validation, and multi-level component genealogy tree visualization.
-  * **Git Hooks**: Integrated tracked pre-commit (`cargo check`) and pre-push (`cargo test`) hooks in `.githooks/`.
-* **v0.0.2**:
-  * Automated native UniFFI packaging (`compileRustLib`) for Desktop & Mobile.
-  * Interactive drag-and-drop floor plan canvas with persistent 2D coordinate updates in SQLite.
-  * Native camera barcode scanning on Android (CameraX/ML Kit) and iOS (AVFoundation).
-  * Direct thermal printing to ESC/POS, TSPL, and OS print spooler (Brother 62mm rolls & Avery sheets).
-  * SQLite database backup with safe WAL flush, and CSV/JSON export/import.
-  * In-app WASM plugin installer and dynamic slot UI manager.
-* **v0.0.1**: Initial multi-module core architecture, Mozilla UniFFI bridging, basic Compose Multiplatform navigation, double-entry GL, and spatial inventory hierarchy.
+## Roadmap
 
----
+- **LEDGER-29** - Mobile biometric authentication integration (FaceID / Fingerprint) via platform Keystores
+- **LEDGER-30** - Mesh relay synchronization for air-gapped field vans and offline pop-up workshops
+- **LEDGER-31** - AI-assisted supplier price fluctuation detection and procurement forecasting
+- **LEDGER-32** - Direct CAD / STEP file component visualization in BOM genealogy trees
 
-## 🗺️ Roadmap & Upcoming Features (v0.0.5)
+## License
 
-* **LEDGER-29**: Mobile biometric authentication integration (FaceID / Fingerprint) via platform Keystores.
-* **LEDGER-30**: Mesh relay synchronization for air-gapped field vans and offline pop-up workshops.
-* **LEDGER-31**: AI-assisted supplier price fluctuation detection and procurement forecasting.
-* **LEDGER-32**: Direct CAD / STEP file component visualization in BOM genealogy trees.
+Licensed under the GNU Lesser General Public License v2.1:
 
+- [LICENSE](LICENSE)
 
+## Links
+
+- [Forgejo Repository](https://git.soventa.tech/moha/ledger)
+- [Vikunja Project Board](https://tasks.soventa.tech/projects/2)
+- [Releases & Changelog](https://git.soventa.tech/moha/ledger/releases)
+- [Soventa Services](https://soventa.tech)
