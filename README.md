@@ -175,3 +175,4 @@ Licensed under the GNU Lesser General Public License v2.1:
 ## Links
 
 - [Documentation](https://docs.soventa.tech/books/ledger)
+- [Tasks](https://tasks.soventa.tech/share/VujOFE3PZ2LSqZDRAOPwF3HgjHxaL9rVYMmQIq6q/auth?)
