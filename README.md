@@ -223,3 +223,16 @@ Open the **Settings** view in Ledger ERP, provide the file path, and click **Ins
   * SQLite database backup with safe WAL flush, and CSV/JSON export/import.
   * In-app WASM plugin installer and dynamic slot UI manager.
 * **v0.0.1**: Initial multi-module core architecture, Mozilla UniFFI bridging, basic Compose Multiplatform navigation, double-entry GL, and spatial inventory hierarchy.
+
+---
+
+## 🗺️ Roadmap & Upcoming Features (v0.0.4)
+
+Tracked in Vikunja project `ledger`:
+* **LEDGER-16**: Batch barcode/label printing and multi-up sheet PDF layouts (Avery 5160 grids, batch queueing, printer error recovery).
+* **LEDGER-17**: Hardware BLE barcode scanners & digital weight scale integration (SPP/HID over GATT, live tare/gross streaming, piece counting).
+* **LEDGER-18**: Multi-currency accounting & offline FX rate tables (dual-currency GL entries, FX gain/loss journal automation).
+* **LEDGER-19**: Recurring subscription invoicing & client retainer deposit tracking (automated billing schedules, deferred revenue drawdown).
+* **LEDGER-20**: Advanced inventory Pareto ABC analysis, aging heatmaps & dynamic safety stock (EOQ reordering, warehouse floor plan heatmap).
+* **LEDGER-21**: Database encryption at rest (SQLCipher / ChaCha20) & authenticated P2P sync via TLS/PSK and QR peer pairing.
+
