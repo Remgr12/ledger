@@ -166,9 +166,9 @@ fun PluginNodeComponent(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    if (node.colorHex != null) {
+                    node.colorHex?.let { color ->
                         Text(
-                            text = node.colorHex,
+                            text = color,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary

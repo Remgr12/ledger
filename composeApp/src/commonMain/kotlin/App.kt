@@ -58,7 +58,7 @@ fun App() {
                         modifier = Modifier.fillMaxHeight(),
                         header = {
                             Column(
-                                horizontalAlignment = Alignment.CenterVertically,
+                                horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.padding(vertical = 12.dp)
                             ) {
                                 Text(

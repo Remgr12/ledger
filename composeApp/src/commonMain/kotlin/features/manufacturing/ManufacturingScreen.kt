@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -95,7 +96,7 @@ fun ManufacturingScreen() {
             selectedTabIndex = selectedTab,
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.primary,
-            shape = RoundedCornerShape(12.dp)
+            modifier = Modifier.clip(RoundedCornerShape(12.dp))
         ) {
             Tab(
                 selected = selectedTab == 0,
@@ -355,12 +356,12 @@ fun BomComponentRow(comp: BomComponentDto) {
             Spacer(modifier = Modifier.width(6.dp))
             Column {
                 Text(
-                    text = comp.description ?: comp.componentItemId,
+                    text = comp.notes ?: comp.itemId,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "Item ID: ${comp.componentItemId}",
+                    text = "Item ID: ${comp.itemId}",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -369,7 +370,7 @@ fun BomComponentRow(comp: BomComponentDto) {
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "${comp.quantityRequired} units",
+                text = "${comp.quantity} units",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.Monospace

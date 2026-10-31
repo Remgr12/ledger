@@ -34,6 +34,25 @@ fun RapidScanMoveHud(
     var auditCount by remember { mutableStateOf(140) }
     var confirmationMessage by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(recentResolution) {
+        val res = recentResolution ?: return@LaunchedEffect
+        when (res.resolutionType) {
+            ScanResolutionTypeDto.LOCATION_CONTEXT -> {
+                confirmationMessage = "✓ Active Location Set: ${res.location?.name ?: res.location?.code ?: "Bin"}"
+            }
+            ScanResolutionTypeDto.RAPID_STOCK_ACTION -> {
+                confirmationMessage = "✓ Ready to Putaway ${res.item?.sku ?: "Item"}"
+            }
+            ScanResolutionTypeDto.ITEM_LOOKUP -> {
+                confirmationMessage = "✓ Scanned Item: ${res.item?.name ?: res.item?.sku}"
+            }
+            ScanResolutionTypeDto.AUDIT_COUNT -> {
+                confirmationMessage = "✓ Audit Cycle: ${res.item?.sku}"
+            }
+            else -> {}
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -188,7 +207,7 @@ fun RapidScanMoveHud(
                 }
 
                 // Temporary scan feedback banner
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = confirmationMessage != null,
                     enter = fadeIn() + slideInVertically(),
                     exit = fadeOut() + slideOutVertically(),
@@ -275,7 +294,7 @@ fun RapidScanMoveHud(
                         OutlinedTextField(
                             value = simulatedBarcode,
                             onValueChange = { simulatedBarcode = it },
-                            placeholder = { Text("erp://loc/... or erp://item/...") },
+                            placeholder = { Text("erp://loc/... or erp://sku/...") },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )

@@ -65,6 +65,17 @@ impl ErpEngine {
         // Initialize core kernel schema and migrations
         module_manager.initialize()?;
 
+        // For a brand new database where no modules are yet active, enable all standard modules
+        if module_manager.list_modules()?.iter().all(|m| !m.is_enabled) {
+            let _ = module_manager.enable_module("mod-inventory");
+            let _ = module_manager.enable_module("mod-contacts");
+            let _ = module_manager.enable_module("mod-invoicing");
+            let _ = module_manager.enable_module("mod-accounting");
+            let _ = module_manager.enable_module("mod-purchasing");
+            let _ = module_manager.enable_module("mod-manufacturing");
+            let _ = module_manager.enable_module("mod-projects");
+        }
+
         // Seed initial default accounts
         let _ = AccountingService::seed_default_chart_of_accounts(&db.conn());
 
@@ -148,6 +159,18 @@ impl ErpEngine {
         let ctx = self.module_manager.context();
         let loc = LocationService::move_location(&ctx, &location_id, new_parent_id.as_deref())?;
         Ok(Self::map_location(loc))
+    }
+
+    /// Update 2D spatial coordinates for a warehouse location
+    pub fn update_location_coordinates(
+        &self,
+        location_id: String,
+        map_x: f64,
+        map_y: f64,
+    ) -> Result<(), ErpFfiError> {
+        let conn = self.db.conn();
+        LocationService::update_location_coordinates(&conn, &location_id, map_x, map_y)?;
+        Ok(())
     }
 
     /// Retrieve the full storage location tree
@@ -265,7 +288,7 @@ impl ErpEngine {
     ) -> Result<(), ErpFfiError> {
         let ctx = self.module_manager.context();
         let quantity = Decimal::from_str(&qty).map_err(|e| ErpFfiError::InvalidArgument {
-            message: format!("Invalid quantity decimal '{}': {}", qty, e),
+            details: format!("Invalid quantity decimal '{}': {}", qty, e),
         })?;
         let m_type = MovementType::from_str(&movement_type).unwrap_or(MovementType::Transfer);
 
@@ -509,7 +532,7 @@ impl ErpEngine {
     ) -> Result<Option<String>, ErpFfiError> {
         let ctx = self.module_manager.context();
         let count_dec = Decimal::from_str(&physical_count).map_err(|e| ErpFfiError::InvalidArgument {
-            message: format!("Invalid count decimal: {}", e),
+            details: format!("Invalid count decimal: {}", e),
         })?;
         let maybe_movement = StockService::reconcile_audit(
             &ctx,
@@ -568,7 +591,7 @@ impl ErpEngine {
     pub fn list_contacts(&self) -> Result<Vec<ContactDto>, ErpFfiError> {
         let conn = self.db.conn();
         let list = ContactsService::list_contacts(&conn).map_err(|e| ErpFfiError::DatabaseError {
-            message: e.to_string(),
+            details: e.to_string(),
         })?;
         Ok(list
             .into_iter()
@@ -618,7 +641,7 @@ impl ErpEngine {
     pub fn list_invoices(&self) -> Result<Vec<InvoiceDto>, ErpFfiError> {
         let conn = self.db.conn();
         let list = InvoicingService::list_invoices(&conn).map_err(|e| ErpFfiError::DatabaseError {
-            message: e.to_string(),
+            details: e.to_string(),
         })?;
         Ok(list
             .into_iter()
@@ -656,7 +679,7 @@ impl ErpEngine {
     ) -> Result<(), ErpFfiError> {
         let manifest: PluginManifest =
             serde_json::from_str(&manifest_json).map_err(|e| ErpFfiError::InvalidArgument {
-                message: format!("Invalid manifest JSON: {}", e),
+                details: format!("Invalid manifest JSON: {}", e),
             })?;
         self.plugin_host.install_plugin(manifest, wasm_bytes)?;
         Ok(())
@@ -669,6 +692,205 @@ impl ErpEngine {
             .into_iter()
             .map(Self::map_plugin_ui_node)
             .collect())
+    }
+
+    /// List all installed WASM plugin manifests
+    pub fn list_installed_plugins(&self) -> Result<Vec<PluginManifestDto>, ErpFfiError> {
+        let plugins = self.plugin_host.list_plugins();
+        Ok(plugins
+            .into_iter()
+            .map(|p| PluginManifestDto {
+                id: p.id,
+                name: p.name,
+                version: p.version,
+                description: p.description,
+                permissions: p.permissions,
+            })
+            .collect())
+    }
+
+    /// Uninstall a WASM plugin by ID
+    pub fn uninstall_wasm_plugin(&self, plugin_id: String) -> Result<(), ErpFfiError> {
+        self.plugin_host.uninstall_plugin(&plugin_id)?;
+        Ok(())
+    }
+
+    /// Install a WASM plugin directly from a local file path
+    pub fn install_wasm_plugin_file(
+        &self,
+        manifest_json: String,
+        file_path: String,
+    ) -> Result<(), ErpFfiError> {
+        let bytes = std::fs::read(&file_path).map_err(|e| ErpFfiError::InvalidArgument {
+            details: format!("Failed to read wasm file '{}': {}", file_path, e),
+        })?;
+        self.install_wasm_plugin(manifest_json, bytes)
+    }
+
+    /// Backup database file to a specified path with safe WAL flushing
+    pub fn backup_database(&self, destination_path: String) -> Result<(), ErpFfiError> {
+        self.db.backup_to_file(&destination_path)?;
+        Ok(())
+    }
+
+    /// Export table data as CSV string ("items", "contacts", "journal")
+    pub fn export_data_csv(&self, entity_type: String) -> Result<String, ErpFfiError> {
+        match entity_type.to_lowercase().as_str() {
+            "items" | "inventory" => {
+                let items = self.list_items()?;
+                let mut out = String::from("id,sku,name,description,unit,track_serial,track_lot,min_stock_level,barcode\n");
+                for it in items {
+                    out.push_str(&format!(
+                        "{},{},{},{},{},{},{},{},{}\n",
+                        it.id,
+                        it.sku,
+                        it.name.replace(',', " "),
+                        it.description.as_deref().unwrap_or("").replace(',', " "),
+                        it.unit,
+                        it.track_serial,
+                        it.track_lot,
+                        it.min_stock_level,
+                        it.barcode.as_deref().unwrap_or("")
+                    ));
+                }
+                Ok(out)
+            }
+            "contacts" => {
+                let contacts = self.list_contacts()?;
+                let mut out = String::from("id,name,tax_id,email,phone,contact_type\n");
+                for c in contacts {
+                    out.push_str(&format!(
+                        "{},{},{},{},{},{}\n",
+                        c.id,
+                        c.name.replace(',', " "),
+                        c.tax_id.as_deref().unwrap_or(""),
+                        c.email.as_deref().unwrap_or(""),
+                        c.phone.as_deref().unwrap_or(""),
+                        c.contact_type
+                    ));
+                }
+                Ok(out)
+            }
+            "journal" | "accounting" => {
+                let conn = self.db.conn();
+                let mut stmt = conn.prepare("SELECT id, entry_number, posting_date, description, status FROM gl_entries").map_err(|e| ErpFfiError::DatabaseError { details: e.to_string() })?;
+                let rows = stmt.query_map([], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                    ))
+                }).map_err(|e| ErpFfiError::DatabaseError { details: e.to_string() })?;
+                let mut out = String::from("id,entry_number,posting_date,description,status\n");
+                for r in rows {
+                    let (id, num, dt, desc, st) = r.map_err(|e| ErpFfiError::DatabaseError { details: e.to_string() })?;
+                    out.push_str(&format!("{},{},{},{},{}\n", id, num, dt, desc.replace(',', " "), st));
+                }
+                Ok(out)
+            }
+            other => Err(ErpFfiError::InvalidArgument {
+                details: format!("Unsupported export entity: '{}'. Supported: items, contacts, journal", other),
+            }),
+        }
+    }
+
+    /// Export table data as JSON string ("items", "contacts", "journal")
+    pub fn export_data_json(&self, entity_type: String) -> Result<String, ErpFfiError> {
+        match entity_type.to_lowercase().as_str() {
+            "items" | "inventory" => {
+                let items = self.list_items()?;
+                serde_json::to_string_pretty(&items).map_err(|e| ErpFfiError::InternalError { details: e.to_string() })
+            }
+            "contacts" => {
+                let contacts = self.list_contacts()?;
+                serde_json::to_string_pretty(&contacts).map_err(|e| ErpFfiError::InternalError { details: e.to_string() })
+            }
+            "journal" | "accounting" => {
+                let conn = self.db.conn();
+                let mut stmt = conn.prepare("SELECT id, entry_number, posting_date, description, status FROM gl_entries").map_err(|e| ErpFfiError::DatabaseError { details: e.to_string() })?;
+                let rows = stmt.query_map([], |row| {
+                    Ok(serde_json::json!({
+                        "id": row.get::<_, String>(0)?,
+                        "entry_number": row.get::<_, String>(1)?,
+                        "posting_date": row.get::<_, String>(2)?,
+                        "description": row.get::<_, String>(3)?,
+                        "status": row.get::<_, String>(4)?,
+                    }))
+                }).map_err(|e| ErpFfiError::DatabaseError { details: e.to_string() })?;
+                let list: Vec<serde_json::Value> = rows.filter_map(Result::ok).collect();
+                serde_json::to_string_pretty(&list).map_err(|e| ErpFfiError::InternalError { details: e.to_string() })
+            }
+            other => Err(ErpFfiError::InvalidArgument {
+                details: format!("Unsupported export entity: '{}'. Supported: items, contacts, journal", other),
+            }),
+        }
+    }
+
+    /// Import initial data from CSV spreadsheets ("items", "contacts")
+    pub fn import_data_csv(&self, entity_type: String, csv_content: String) -> Result<u32, ErpFfiError> {
+        let lines: Vec<&str> = csv_content.lines().collect();
+        if lines.is_empty() {
+            return Ok(0);
+        }
+
+        let mut imported_count = 0u32;
+
+        match entity_type.to_lowercase().as_str() {
+            "items" | "inventory" => {
+                for line in lines.iter().skip(1) {
+                    let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+                    if parts.len() >= 2 {
+                        let sku = parts[0];
+                        let name = parts[1];
+                        let unit = if parts.len() > 2 && !parts[2].is_empty() { parts[2] } else { "pcs" };
+                        let desc = if parts.len() > 3 && !parts[3].is_empty() { Some(parts[3].to_string()) } else { None };
+                        let min_stock = if parts.len() > 4 && !parts[4].is_empty() { parts[4] } else { "0" };
+
+                        if !sku.is_empty() && !name.is_empty() {
+                            let _ = self.create_item(
+                                sku.to_string(),
+                                name.to_string(),
+                                desc,
+                                unit.to_string(),
+                                false,
+                                false,
+                                min_stock.to_string(),
+                                None,
+                            );
+                            imported_count += 1;
+                        }
+                    }
+                }
+                Ok(imported_count)
+            }
+            "contacts" => {
+                for line in lines.iter().skip(1) {
+                    let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+                    if !parts.is_empty() && !parts[0].is_empty() {
+                        let name = parts[0];
+                        let email = if parts.len() > 1 && !parts[1].is_empty() { Some(parts[1].to_string()) } else { None };
+                        let phone = if parts.len() > 2 && !parts[2].is_empty() { Some(parts[2].to_string()) } else { None };
+                        let tax_id = if parts.len() > 3 && !parts[3].is_empty() { Some(parts[3].to_string()) } else { None };
+
+                        let _ = self.create_contact(
+                            "Customer".to_string(),
+                            name.to_string(),
+                            email,
+                            phone,
+                            tax_id,
+                            None,
+                        );
+                        imported_count += 1;
+                    }
+                }
+                Ok(imported_count)
+            }
+            other => Err(ErpFfiError::InvalidArgument {
+                details: format!("Unsupported import entity: '{}'. Supported: items, contacts", other),
+            }),
+        }
     }
 
     // ==========================================
@@ -732,7 +954,7 @@ impl ErpEngine {
         let ctx = self.module_manager.context();
         let p_type = PaymentType::from_str(&payment_type).unwrap_or(PaymentType::Receive);
         let amt = Decimal::from_str(&amount).map_err(|e| ErpFfiError::InvalidArgument {
-            message: format!("Invalid payment amount: {}", e),
+            details: format!("Invalid payment amount: {}", e),
         })?;
 
         let payment = AccountingService::record_payment(

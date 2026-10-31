@@ -7,6 +7,8 @@ plugins {
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
+
     androidTarget {
         compilations.all {
             kotlinOptions {
@@ -40,12 +42,19 @@ kotlin {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
+                implementation(compose.materialIconsExtended)
                 implementation(compose.ui)
                 implementation(compose.components.resources)
                 implementation(compose.components.uiToolingPreview)
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
                 implementation("net.java.dev.jna:jna:5.14.0")
+            }
+        }
+
+        val commonTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
             }
         }
 
@@ -103,4 +112,60 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+compose.desktop {
+    application {
+        mainClass = "org.erp.ledger.MainKt"
+        nativeDistributions {
+            targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb)
+            packageName = "org.erp.ledger"
+            packageVersion = "1.0.0"
+        }
+    }
+}
+
+val compileRustLib by tasks.registering(Exec::class) {
+    description = "Compiles native Rust UniFFI shared library and bundles into desktopMain resources"
+    workingDir = rootDir.parentFile
+    commandLine("cargo", "build", "--release", "-p", "erp-ffi")
+    doLast {
+        val rootReleaseDir = File(rootDir.parentFile, "target/release")
+        val resourcesBase = file("src/desktopMain/resources")
+        val arch = System.getProperty("os.arch").lowercase()
+        val isArm = arch.contains("aarch64") || arch.contains("arm64")
+
+        val libSo = File(rootReleaseDir, "liberp_ffi.so")
+        if (libSo.exists()) {
+            val aarchDir = File(resourcesBase, "linux-aarch64")
+            aarchDir.mkdirs()
+            libSo.copyTo(File(aarchDir, "liberp_ffi.so"), overwrite = true)
+            val x86Dir = File(resourcesBase, "linux-x86-64")
+            x86Dir.mkdirs()
+            libSo.copyTo(File(x86Dir, "liberp_ffi.so"), overwrite = true)
+        }
+        val dylib = File(rootReleaseDir, "liberp_ffi.dylib")
+        if (dylib.exists()) {
+            val dDir = File(resourcesBase, if (isArm) "darwin-aarch64" else "darwin-x86-64")
+            dDir.mkdirs()
+            dylib.copyTo(File(dDir, "liberp_ffi.dylib"), overwrite = true)
+        }
+        val dll = File(rootReleaseDir, "erp_ffi.dll")
+        if (dll.exists()) {
+            val wDir = File(resourcesBase, "win32-x86-64")
+            wDir.mkdirs()
+            dll.copyTo(File(wDir, "erp_ffi.dll"), overwrite = true)
+        }
+    }
+}
+
+tasks.matching {
+    it.name == "run" ||
+    it.name == "desktopRun" ||
+    it.name == "desktopJar" ||
+    it.name == "desktopProcessResources" ||
+    it.name == "jvmProcessResources" ||
+    it.name.startsWith("compileKotlinDesktop")
+}.configureEach {
+    dependsOn(compileRustLib)
 }

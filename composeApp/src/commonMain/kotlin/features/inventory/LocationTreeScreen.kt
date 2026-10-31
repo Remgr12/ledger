@@ -25,12 +25,22 @@ import uniffi.erp_ffi.LocationDto
 fun LocationTreeScreen(
     onSelectLocation: (LocationDto) -> Unit = {}
 ) {
-    val locations = remember { ErpBridge.getStorageLocations() }
+    var locations by remember { mutableStateOf(ErpBridge.getStorageLocations()) }
+    val activeLocation by ErpBridge.activeContextLocation.collectAsState()
+
+    fun reload() {
+        locations = ErpBridge.getStorageLocations()
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hierarchical Storage Tree", fontWeight = FontWeight.Bold) }
+                title = { Text("Hierarchical Storage Tree & Floor Plan", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = { reload() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    }
+                }
             )
         }
     ) { padding ->
@@ -39,8 +49,44 @@ fun LocationTreeScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Interactive Warehouse Floor Plan Radar Canvas with Drag & Drop
+            item {
+                FloorPlanCanvas(
+                    locations = locations,
+                    activeLocation = activeLocation,
+                    onLocationTapped = { loc ->
+                        ErpBridge.setActiveContextLocation(loc)
+                        onSelectLocation(loc)
+                    },
+                    onLocationMoved = { loc, newX, newY ->
+                        ErpBridge.updateLocationCoordinates(loc.id, newX, newY)
+                        reload()
+                    }
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "STORAGE HIERARCHY TREE",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        "${locations.size} locations configured",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             items(locations) { loc ->
                 LocationTreeItem(
                     location = loc,
@@ -59,7 +105,6 @@ fun LocationTreeItem(
     location: LocationDto,
     onClick: () -> Unit
 ) {
-    // Indent based on location hierarchy type
     val indent = when (location.locationType) {
         "Warehouse" -> 0.dp
         "Room" -> 16.dp
@@ -111,7 +156,7 @@ fun LocationTreeItem(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Code: ${location.code} • ${location.locationType}",
+                    text = "Code: ${location.code} • ${location.locationType} • 2D: (${location.mapX?.toInt() ?: 0}, ${location.mapY?.toInt() ?: 0})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -124,7 +169,7 @@ fun LocationTreeItem(
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = "Tap to Target",
+                    text = "Target",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold

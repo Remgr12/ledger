@@ -277,11 +277,11 @@ object ErpBridge {
                 )
             }
 
-            trimmed.startsWith("erp://item/") || trimmed.contains("BOLT") || trimmed.contains("BEARING") -> {
-                val sku = if (trimmed.startsWith("erp://item/")) {
-                    trimmed.removePrefix("erp://item/").split("?")[0]
-                } else {
-                    trimmed
+            trimmed.startsWith("erp://item/") || trimmed.startsWith("erp://sku/") || trimmed.contains("BOLT") || trimmed.contains("BEARING") -> {
+                val sku = when {
+                    trimmed.startsWith("erp://item/") -> trimmed.removePrefix("erp://item/").split("?")[0]
+                    trimmed.startsWith("erp://sku/") -> trimmed.removePrefix("erp://sku/").split("?")[0]
+                    else -> trimmed
                 }
 
                 val matchedItem = mockItems.firstOrNull { it.sku.contains(sku, ignoreCase = true) }
@@ -424,6 +424,146 @@ object ErpBridge {
             current[index] = mod.copy(isEnabled = enabled)
             _availableModules.value = current
         }
+    }
+
+    fun updateLocationCoordinates(locationId: String, mapX: Double, mapY: Double): Boolean {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.updateLocationCoordinates(locationId, mapX, mapY)
+                val idx = mockLocations.indexOfFirst { it.id == locationId }
+                if (idx != -1) {
+                    mockLocations[idx] = mockLocations[idx].copy(mapX = mapX, mapY = mapY)
+                }
+                if (_activeContextLocation.value?.id == locationId) {
+                    _activeContextLocation.value = _activeContextLocation.value?.copy(mapX = mapX, mapY = mapY)
+                }
+                true
+            } catch (e: Exception) {
+                println("Failed to update coordinates via engine: $e")
+                false
+            }
+        }
+
+        val idx = mockLocations.indexOfFirst { it.id == locationId }
+        if (idx != -1) {
+            mockLocations[idx] = mockLocations[idx].copy(mapX = mapX, mapY = mapY)
+        }
+        if (_activeContextLocation.value?.id == locationId) {
+            _activeContextLocation.value = _activeContextLocation.value?.copy(mapX = mapX, mapY = mapY)
+        }
+        return true
+    }
+
+    // ==========================================
+    // Database Backup & Data Export/Import Bridge
+    // ==========================================
+
+    fun backupDatabase(destinationPath: String): Boolean {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.backupDatabase(destinationPath)
+                true
+            } catch (e: Exception) {
+                println("Backup failed: $e")
+                false
+            }
+        }
+        return false
+    }
+
+    fun exportDataCsv(entityType: String): String {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.exportDataCsv(entityType)
+            } catch (e: Exception) {
+                "id,sku,name\n"
+            }
+        }
+        return "id,sku,name\n"
+    }
+
+    fun exportDataJson(entityType: String): String {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.exportDataJson(entityType)
+            } catch (e: Exception) {
+                "[]"
+            }
+        }
+        return "[]"
+    }
+
+    fun importDataCsv(entityType: String, csvContent: String): Int {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.importDataCsv(entityType, csvContent).toInt()
+            } catch (e: Exception) {
+                println("Import failed: $e")
+                0
+            }
+        }
+        return 0
+    }
+
+    // ==========================================
+    // WASM Plugin Management Bridge
+    // ==========================================
+
+    fun installWasmPluginFile(filePath: String, manifestJson: String): Boolean {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.installWasmPluginFile(manifestJson, filePath)
+                true
+            } catch (e: Exception) {
+                println("Plugin installation failed: $e")
+                false
+            }
+        }
+        return false
+    }
+
+    fun listInstalledPlugins(): List<PluginManifestDto> {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.listInstalledPlugins()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        return emptyList()
+    }
+
+    fun uninstallPlugin(pluginId: String): Boolean {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.uninstallWasmPlugin(pluginId)
+                true
+            } catch (e: Exception) {
+                println("Plugin uninstall failed: $e")
+                false
+            }
+        }
+        return false
+    }
+
+    fun getPluginUiNodes(contextView: String): List<PluginUiNodeDto> {
+        val engine = nativeEngine
+        if (engine != null) {
+            return try {
+                engine.getPluginUiNodes(contextView)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        return emptyList()
     }
 
     fun getStorageLocations(): List<LocationDto> {

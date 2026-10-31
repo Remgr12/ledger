@@ -22,7 +22,7 @@ impl QrService {
             ParsedQr::Location {
                 id_or_code: rest.trim_end_matches('/').to_string(),
             }
-        } else if let Some(rest) = trimmed.strip_prefix("erp://item/") {
+        } else if let Some(rest) = trimmed.strip_prefix("erp://item/").or_else(|| trimmed.strip_prefix("erp://sku/")) {
             // Check for query parameters (?lot=...&sn=...)
             let mut parts = rest.splitn(2, '?');
             let sku = parts.next().unwrap_or_default().to_string();

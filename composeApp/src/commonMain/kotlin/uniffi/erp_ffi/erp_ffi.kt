@@ -794,6 +794,26 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -819,6 +839,8 @@ internal interface UniffiLib : Library {
     ): Unit
     fun uniffi_erp_ffi_fn_constructor_erpengine_new(`dbPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
+    fun uniffi_erp_ffi_fn_method_erpengine_backup_database(`ptr`: Pointer,`destinationPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun uniffi_erp_ffi_fn_method_erpengine_create_bom(`ptr`: Pointer,`bomNumber`: RustBuffer.ByValue,`itemId`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,`quantity`: RustBuffer.ByValue,`components`: RustBuffer.ByValue,`routingNotes`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_create_contact(`ptr`: Pointer,`contactType`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,`email`: RustBuffer.ByValue,`phone`: RustBuffer.ByValue,`taxId`: RustBuffer.ByValue,`address`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -836,6 +858,10 @@ internal interface UniffiLib : Library {
     fun uniffi_erp_ffi_fn_method_erpengine_create_work_order(`ptr`: Pointer,`workOrderNumber`: RustBuffer.ByValue,`bomId`: RustBuffer.ByValue,`targetQuantity`: RustBuffer.ByValue,`sourceLocationId`: RustBuffer.ByValue,`destinationLocationId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_execute_work_order(`ptr`: Pointer,`workOrderId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_export_data_csv(`ptr`: Pointer,`entityType`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_export_data_json(`ptr`: Pointer,`entityType`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_finalize_invoice(`ptr`: Pointer,`invoiceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -855,15 +881,25 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_get_profit_and_loss(`ptr`: Pointer,`startDate`: RustBuffer.ByValue,`endDate`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_get_storage_locations(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_get_trial_balance(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_import_data_csv(`ptr`: Pointer,`entityType`: RustBuffer.ByValue,`csvContent`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
     fun uniffi_erp_ffi_fn_method_erpengine_install_wasm_plugin(`ptr`: Pointer,`manifestJson`: RustBuffer.ByValue,`wasmBytes`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_erp_ffi_fn_method_erpengine_install_wasm_plugin_file(`ptr`: Pointer,`manifestJson`: RustBuffer.ByValue,`filePath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_erp_ffi_fn_method_erpengine_invoice_unbilled_timesheets(`ptr`: Pointer,`projectId`: RustBuffer.ByValue,`invoiceNumber`: RustBuffer.ByValue,`taxRate`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_list_boms(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_list_contacts(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_list_installed_plugins(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_list_invoices(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_erp_ffi_fn_method_erpengine_list_items(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -895,6 +931,10 @@ internal interface UniffiLib : Library {
     ): Unit
     fun uniffi_erp_ffi_fn_method_erpengine_submit_purchase_order(`ptr`: Pointer,`poId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_erp_ffi_fn_method_erpengine_uninstall_wasm_plugin(`ptr`: Pointer,`pluginId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_erp_ffi_fn_method_erpengine_update_location_coordinates(`ptr`: Pointer,`locationId`: RustBuffer.ByValue,`mapX`: Double,`mapY`: Double,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun uniffi_erp_ffi_fn_func_init_erp(`dbPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
     fun ffi_erp_ffi_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
@@ -1011,6 +1051,8 @@ internal interface UniffiLib : Library {
     ): Unit
     fun uniffi_erp_ffi_checksum_func_init_erp(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_backup_database(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_create_bom(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_create_contact(
@@ -1028,6 +1070,10 @@ internal interface UniffiLib : Library {
     fun uniffi_erp_ffi_checksum_method_erpengine_create_work_order(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_execute_work_order(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_export_data_csv(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_export_data_json(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_finalize_invoice(
     ): Short
@@ -1047,15 +1093,25 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_get_profit_and_loss(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_get_storage_locations(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_get_trial_balance(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_import_data_csv(
+    ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_install_wasm_plugin(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_install_wasm_plugin_file(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_invoice_unbilled_timesheets(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_list_boms(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_list_contacts(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_list_installed_plugins(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_list_invoices(
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_list_items(
     ): Short
@@ -1087,6 +1143,10 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_erp_ffi_checksum_method_erpengine_submit_purchase_order(
     ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_uninstall_wasm_plugin(
+    ): Short
+    fun uniffi_erp_ffi_checksum_method_erpengine_update_location_coordinates(
+    ): Short
     fun uniffi_erp_ffi_checksum_constructor_erpengine_new(
     ): Short
     fun ffi_erp_ffi_uniffi_contract_version(
@@ -1107,6 +1167,9 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_erp_ffi_checksum_func_init_erp() != 63212.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_backup_database() != 44222.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_create_bom() != 42495.toShort()) {
@@ -1136,6 +1199,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_execute_work_order() != 20447.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_export_data_csv() != 59889.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_export_data_json() != 57358.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_finalize_invoice() != 24641.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1163,10 +1232,19 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_profit_and_loss() != 50688.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_storage_locations() != 60675.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_get_trial_balance() != 36115.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_import_data_csv() != 42359.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_install_wasm_plugin() != 63244.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_install_wasm_plugin_file() != 14201.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_invoice_unbilled_timesheets() != 47090.toShort()) {
@@ -1176,6 +1254,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_list_contacts() != 9878.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_list_installed_plugins() != 31079.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_list_invoices() != 48968.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_list_items() != 59092.toShort()) {
@@ -1221,6 +1305,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_method_erpengine_submit_purchase_order() != 36820.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_uninstall_wasm_plugin() != 51598.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_erp_ffi_checksum_method_erpengine_update_location_coordinates() != 53509.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_erp_ffi_checksum_constructor_erpengine_new() != 55695.toShort()) {
@@ -1605,6 +1695,11 @@ private class JavaLangRefCleanable(
 }
 public interface ErpEngineInterface {
     
+    /**
+     * Backup database file to a specified path with safe WAL flushing
+     */
+    fun `backupDatabase`(`destinationPath`: kotlin.String)
+    
     fun `createBom`(`bomNumber`: kotlin.String, `itemId`: kotlin.String, `name`: kotlin.String, `quantity`: kotlin.String, `components`: List<BomComponentDto>, `routingNotes`: kotlin.String?): BillOfMaterialsDto
     
     /**
@@ -1631,6 +1726,16 @@ public interface ErpEngineInterface {
     fun `createWorkOrder`(`workOrderNumber`: kotlin.String, `bomId`: kotlin.String, `targetQuantity`: kotlin.String, `sourceLocationId`: kotlin.String, `destinationLocationId`: kotlin.String): WorkOrderDto
     
     fun `executeWorkOrder`(`workOrderId`: kotlin.String): WorkOrderDto
+    
+    /**
+     * Export table data as CSV string ("items", "contacts", "journal")
+     */
+    fun `exportDataCsv`(`entityType`: kotlin.String): kotlin.String
+    
+    /**
+     * Export table data as JSON string ("items", "contacts", "journal")
+     */
+    fun `exportDataJson`(`entityType`: kotlin.String): kotlin.String
     
     /**
      * Finalize an invoice and trigger stock deductions
@@ -1671,12 +1776,27 @@ public interface ErpEngineInterface {
     
     fun `getProfitAndLoss`(`startDate`: kotlin.String, `endDate`: kotlin.String): FinancialStatementDto
     
+    /**
+     * Retrieve flat list of all storage locations
+     */
+    fun `getStorageLocations`(): List<LocationDto>
+    
     fun `getTrialBalance`(): FinancialStatementDto
+    
+    /**
+     * Import initial data from CSV spreadsheets ("items", "contacts")
+     */
+    fun `importDataCsv`(`entityType`: kotlin.String, `csvContent`: kotlin.String): kotlin.UInt
     
     /**
      * Install a third-party Wasm plugin with Extism
      */
     fun `installWasmPlugin`(`manifestJson`: kotlin.String, `wasmBytes`: kotlin.ByteArray)
+    
+    /**
+     * Install a WASM plugin directly from a local file path
+     */
+    fun `installWasmPluginFile`(`manifestJson`: kotlin.String, `filePath`: kotlin.String)
     
     fun `invoiceUnbilledTimesheets`(`projectId`: kotlin.String, `invoiceNumber`: kotlin.String, `taxRate`: kotlin.String): InvoiceDto
     
@@ -1686,6 +1806,16 @@ public interface ErpEngineInterface {
      * List all contacts
      */
     fun `listContacts`(): List<ContactDto>
+    
+    /**
+     * List all installed WASM plugin manifests
+     */
+    fun `listInstalledPlugins`(): List<PluginManifestDto>
+    
+    /**
+     * List all invoices
+     */
+    fun `listInvoices`(): List<InvoiceDto>
     
     /**
      * List all catalog items
@@ -1738,6 +1868,16 @@ public interface ErpEngineInterface {
     fun `setModuleEnabled`(`id`: kotlin.String, `enabled`: kotlin.Boolean)
     
     fun `submitPurchaseOrder`(`poId`: kotlin.String): PurchaseOrderDto
+    
+    /**
+     * Uninstall a WASM plugin by ID
+     */
+    fun `uninstallWasmPlugin`(`pluginId`: kotlin.String)
+    
+    /**
+     * Update 2D spatial coordinates for a warehouse location
+     */
+    fun `updateLocationCoordinates`(`locationId`: kotlin.String, `mapX`: kotlin.Double, `mapY`: kotlin.Double)
     
     companion object
 }
@@ -1832,6 +1972,21 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
             UniffiLib.INSTANCE.uniffi_erp_ffi_fn_clone_erpengine(pointer!!, status)
         }
     }
+
+    
+    /**
+     * Backup database file to a specified path with safe WAL flushing
+     */
+    @Throws(ErpFfiException::class)override fun `backupDatabase`(`destinationPath`: kotlin.String)
+        = 
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_backup_database(
+        it, FfiConverterString.lower(`destinationPath`),_status)
+}
+    }
+    
+    
 
     
     @Throws(ErpFfiException::class)override fun `createBom`(`bomNumber`: kotlin.String, `itemId`: kotlin.String, `name`: kotlin.String, `quantity`: kotlin.String, `components`: List<BomComponentDto>, `routingNotes`: kotlin.String?): BillOfMaterialsDto {
@@ -1953,6 +2108,38 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
     uniffiRustCallWithError(ErpFfiException) { _status ->
     UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_execute_work_order(
         it, FfiConverterString.lower(`workOrderId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Export table data as CSV string ("items", "contacts", "journal")
+     */
+    @Throws(ErpFfiException::class)override fun `exportDataCsv`(`entityType`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_export_data_csv(
+        it, FfiConverterString.lower(`entityType`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Export table data as JSON string ("items", "contacts", "journal")
+     */
+    @Throws(ErpFfiException::class)override fun `exportDataJson`(`entityType`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_export_data_json(
+        it, FfiConverterString.lower(`entityType`),_status)
 }
     }
     )
@@ -2098,12 +2285,44 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
     
 
     
+    /**
+     * Retrieve flat list of all storage locations
+     */
+    @Throws(ErpFfiException::class)override fun `getStorageLocations`(): List<LocationDto> {
+            return FfiConverterSequenceTypeLocationDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_get_storage_locations(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(ErpFfiException::class)override fun `getTrialBalance`(): FinancialStatementDto {
             return FfiConverterTypeFinancialStatementDto.lift(
     callWithPointer {
     uniffiRustCallWithError(ErpFfiException) { _status ->
     UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_get_trial_balance(
         it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Import initial data from CSV spreadsheets ("items", "contacts")
+     */
+    @Throws(ErpFfiException::class)override fun `importDataCsv`(`entityType`: kotlin.String, `csvContent`: kotlin.String): kotlin.UInt {
+            return FfiConverterUInt.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_import_data_csv(
+        it, FfiConverterString.lower(`entityType`),FfiConverterString.lower(`csvContent`),_status)
 }
     }
     )
@@ -2120,6 +2339,21 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
     uniffiRustCallWithError(ErpFfiException) { _status ->
     UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_install_wasm_plugin(
         it, FfiConverterString.lower(`manifestJson`),FfiConverterByteArray.lower(`wasmBytes`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Install a WASM plugin directly from a local file path
+     */
+    @Throws(ErpFfiException::class)override fun `installWasmPluginFile`(`manifestJson`: kotlin.String, `filePath`: kotlin.String)
+        = 
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_install_wasm_plugin_file(
+        it, FfiConverterString.lower(`manifestJson`),FfiConverterString.lower(`filePath`),_status)
 }
     }
     
@@ -2160,6 +2394,38 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
     callWithPointer {
     uniffiRustCallWithError(ErpFfiException) { _status ->
     UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_list_contacts(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * List all installed WASM plugin manifests
+     */
+    @Throws(ErpFfiException::class)override fun `listInstalledPlugins`(): List<PluginManifestDto> {
+            return FfiConverterSequenceTypePluginManifestDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_list_installed_plugins(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * List all invoices
+     */
+    @Throws(ErpFfiException::class)override fun `listInvoices`(): List<InvoiceDto> {
+            return FfiConverterSequenceTypeInvoiceDto.lift(
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_list_invoices(
         it, _status)
 }
     }
@@ -2380,6 +2646,36 @@ open class ErpEngine: Disposable, AutoCloseable, ErpEngineInterface {
     }
     )
     }
+    
+
+    
+    /**
+     * Uninstall a WASM plugin by ID
+     */
+    @Throws(ErpFfiException::class)override fun `uninstallWasmPlugin`(`pluginId`: kotlin.String)
+        = 
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_uninstall_wasm_plugin(
+        it, FfiConverterString.lower(`pluginId`),_status)
+}
+    }
+    
+    
+
+    
+    /**
+     * Update 2D spatial coordinates for a warehouse location
+     */
+    @Throws(ErpFfiException::class)override fun `updateLocationCoordinates`(`locationId`: kotlin.String, `mapX`: kotlin.Double, `mapY`: kotlin.Double)
+        = 
+    callWithPointer {
+    uniffiRustCallWithError(ErpFfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_erp_ffi_fn_method_erpengine_update_location_coordinates(
+        it, FfiConverterString.lower(`locationId`),FfiConverterDouble.lower(`mapX`),FfiConverterDouble.lower(`mapY`),_status)
+}
+    }
+    
     
 
     
@@ -3300,6 +3596,50 @@ public object FfiConverterTypePaymentEntryDto: FfiConverterRustBuffer<PaymentEnt
 
 
 
+data class PluginManifestDto (
+    var `id`: kotlin.String, 
+    var `name`: kotlin.String, 
+    var `version`: kotlin.String, 
+    var `description`: kotlin.String, 
+    var `permissions`: List<kotlin.String>
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePluginManifestDto: FfiConverterRustBuffer<PluginManifestDto> {
+    override fun read(buf: ByteBuffer): PluginManifestDto {
+        return PluginManifestDto(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PluginManifestDto) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`name`) +
+            FfiConverterString.allocationSize(value.`version`) +
+            FfiConverterString.allocationSize(value.`description`) +
+            FfiConverterSequenceString.allocationSize(value.`permissions`)
+    )
+
+    override fun write(value: PluginManifestDto, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`name`, buf)
+            FfiConverterString.write(value.`version`, buf)
+            FfiConverterString.write(value.`description`, buf)
+            FfiConverterSequenceString.write(value.`permissions`, buf)
+    }
+}
+
+
+
 data class PluginUiNodeDto (
     var `nodeId`: kotlin.String, 
     var `nodeKind`: kotlin.String, 
@@ -3930,58 +4270,58 @@ sealed class ErpFfiException: kotlin.Exception() {
     
     class DatabaseException(
         
-        val `message`: kotlin.String
+        val `details`: kotlin.String
         ) : ErpFfiException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "details=${ `details` }"
     }
     
     class ModuleException(
         
-        val `message`: kotlin.String
+        val `details`: kotlin.String
         ) : ErpFfiException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "details=${ `details` }"
     }
     
     class InventoryException(
         
-        val `message`: kotlin.String
+        val `details`: kotlin.String
         ) : ErpFfiException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "details=${ `details` }"
     }
     
     class PluginException(
         
-        val `message`: kotlin.String
+        val `details`: kotlin.String
         ) : ErpFfiException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "details=${ `details` }"
     }
     
     class InvalidArgument(
         
-        val `message`: kotlin.String
+        val `details`: kotlin.String
         ) : ErpFfiException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "details=${ `details` }"
     }
     
     class NotFound(
         
-        val `message`: kotlin.String
+        val `details`: kotlin.String
         ) : ErpFfiException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "details=${ `details` }"
     }
     
     class InternalException(
         
-        val `message`: kotlin.String
+        val `details`: kotlin.String
         ) : ErpFfiException() {
         override val message
-            get() = "message=${ `message` }"
+            get() = "details=${ `details` }"
     }
     
 
@@ -4030,37 +4370,37 @@ public object FfiConverterTypeErpFfiError : FfiConverterRustBuffer<ErpFfiExcepti
             is ErpFfiException.DatabaseException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`details`)
             )
             is ErpFfiException.ModuleException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`details`)
             )
             is ErpFfiException.InventoryException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`details`)
             )
             is ErpFfiException.PluginException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`details`)
             )
             is ErpFfiException.InvalidArgument -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`details`)
             )
             is ErpFfiException.NotFound -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`details`)
             )
             is ErpFfiException.InternalException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
-                + FfiConverterString.allocationSize(value.`message`)
+                + FfiConverterString.allocationSize(value.`details`)
             )
         }
     }
@@ -4069,37 +4409,37 @@ public object FfiConverterTypeErpFfiError : FfiConverterRustBuffer<ErpFfiExcepti
         when(value) {
             is ErpFfiException.DatabaseException -> {
                 buf.putInt(1)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`details`, buf)
                 Unit
             }
             is ErpFfiException.ModuleException -> {
                 buf.putInt(2)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`details`, buf)
                 Unit
             }
             is ErpFfiException.InventoryException -> {
                 buf.putInt(3)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`details`, buf)
                 Unit
             }
             is ErpFfiException.PluginException -> {
                 buf.putInt(4)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`details`, buf)
                 Unit
             }
             is ErpFfiException.InvalidArgument -> {
                 buf.putInt(5)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`details`, buf)
                 Unit
             }
             is ErpFfiException.NotFound -> {
                 buf.putInt(6)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`details`, buf)
                 Unit
             }
             is ErpFfiException.InternalException -> {
                 buf.putInt(7)
-                FfiConverterString.write(value.`message`, buf)
+                FfiConverterString.write(value.`details`, buf)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -4442,6 +4782,34 @@ public object FfiConverterSequenceTypeGlEntryDto: FfiConverterRustBuffer<List<Gl
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeInvoiceDto: FfiConverterRustBuffer<List<InvoiceDto>> {
+    override fun read(buf: ByteBuffer): List<InvoiceDto> {
+        val len = buf.getInt()
+        return List<InvoiceDto>(len) {
+            FfiConverterTypeInvoiceDto.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<InvoiceDto>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeInvoiceDto.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<InvoiceDto>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeInvoiceDto.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeInvoiceLineDto: FfiConverterRustBuffer<List<InvoiceLineDto>> {
     override fun read(buf: ByteBuffer): List<InvoiceLineDto> {
         val len = buf.getInt()
@@ -4554,6 +4922,34 @@ public object FfiConverterSequenceTypeJournalLineInputDto: FfiConverterRustBuffe
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeLocationDto: FfiConverterRustBuffer<List<LocationDto>> {
+    override fun read(buf: ByteBuffer): List<LocationDto> {
+        val len = buf.getInt()
+        return List<LocationDto>(len) {
+            FfiConverterTypeLocationDto.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<LocationDto>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeLocationDto.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<LocationDto>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeLocationDto.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeLocationNodeDto: FfiConverterRustBuffer<List<LocationNodeDto>> {
     override fun read(buf: ByteBuffer): List<LocationNodeDto> {
         val len = buf.getInt()
@@ -4628,6 +5024,34 @@ public object FfiConverterSequenceTypeModuleRouteDto: FfiConverterRustBuffer<Lis
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeModuleRouteDto.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypePluginManifestDto: FfiConverterRustBuffer<List<PluginManifestDto>> {
+    override fun read(buf: ByteBuffer): List<PluginManifestDto> {
+        val len = buf.getInt()
+        return List<PluginManifestDto>(len) {
+            FfiConverterTypePluginManifestDto.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<PluginManifestDto>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypePluginManifestDto.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<PluginManifestDto>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypePluginManifestDto.write(it, buf)
         }
     }
 }

@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.erp.ledger.core.ErpBridge
-import org.erp.ledger.core.ScanResolutionDto
+import uniffi.erp_ffi.ScanResolutionDto
 
 /**
  * Cross-platform QR & Barcode Scanner Controller.
@@ -21,7 +21,7 @@ class QrScannerController {
     private val _isCameraActive = MutableStateFlow(true)
     val isCameraActive: StateFlow<Boolean> = _isCameraActive.asStateFlow()
 
-    private val _scanEvents = MutableSharedFlow<ScanResolutionDto>(extraBufferCapacity = 16)
+    private val _scanEvents = MutableSharedFlow<ScanResolutionDto>(replay = 0, extraBufferCapacity = 16)
     val scanEvents: SharedFlow<ScanResolutionDto> = _scanEvents.asSharedFlow()
 
     fun toggleTorch() {

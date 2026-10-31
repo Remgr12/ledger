@@ -141,6 +141,15 @@ pub struct PluginUiNodeDto {
     pub children: Vec<PluginUiNodeDto>,
 }
 
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct PluginManifestDto {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub description: String,
+    pub permissions: Vec<String>,
+}
+
 // ==========================================
 // 1. Accounting DTOs
 // ==========================================

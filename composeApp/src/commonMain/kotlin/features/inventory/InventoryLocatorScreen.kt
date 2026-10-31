@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.erp.ledger.core.DynamicPluginUiRenderer
 import org.erp.ledger.core.ErpBridge
 import uniffi.erp_ffi.ItemLocationCardDto
 
@@ -268,8 +269,10 @@ fun ItemLocationCard(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.outline
                         )
+                        val mx = match.mapX?.toInt() ?: 0
+                        val my = match.mapY?.toInt() ?: 0
                         Text(
-                            text = "(${match.mapX.toInt()}, ${match.mapY.toInt()})",
+                            text = "($mx, $my)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -299,6 +302,12 @@ fun ItemLocationCard(
                         )
                     }
                 }
+            }
+
+            // Dynamic WebAssembly Plugin UI Slot ("inventory_detail")
+            val pluginNodes = remember { ErpBridge.getPluginUiNodes("inventory_detail") }
+            if (pluginNodes.isNotEmpty()) {
+                DynamicPluginUiRenderer(nodes = pluginNodes)
             }
 
             // Action row

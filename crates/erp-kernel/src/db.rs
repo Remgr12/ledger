@@ -49,6 +49,16 @@ impl Database {
         self.conn.lock()
     }
 
+    /// Backup database to destination file with safe WAL flush
+    pub fn backup_to_file<P: AsRef<Path>>(&self, dest_path: P) -> Result<(), ErpKernelError> {
+        let conn = self.conn.lock();
+        conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
+        let mut dest_conn = Connection::open(dest_path)?;
+        let backup = rusqlite::backup::Backup::new(&conn, &mut dest_conn)?;
+        backup.run_to_completion(100, std::time::Duration::from_millis(10), None)?;
+        Ok(())
+    }
+
     /// Execute a closure within an exclusive SQLite transaction.
     pub fn transaction<T, F>(&self, f: F) -> Result<T, ErpKernelError>
     where

@@ -111,6 +111,23 @@ impl LocationService {
         Ok(location)
     }
 
+    /// Update 2D spatial map coordinates for a storage location
+    pub fn update_location_coordinates(
+        conn: &Connection,
+        id: &str,
+        map_x: f64,
+        map_y: f64,
+    ) -> Result<(), InventoryError> {
+        let count = conn.execute(
+            "UPDATE locations SET map_x = ?1, map_y = ?2 WHERE id = ?3",
+            rusqlite::params![map_x, map_y, id],
+        )?;
+        if count == 0 {
+            return Err(InventoryError::LocationNotFound(id.to_string()));
+        }
+        Ok(())
+    }
+
     /// Move a location to a new parent in the hierarchy, maintaining the closure table
     /// and recursively updating all descendant breadcrumb paths.
     pub fn move_location(
