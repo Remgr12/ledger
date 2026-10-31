@@ -5,8 +5,8 @@ pub mod service;
 
 pub use errors::AccountingError;
 pub use models::{
-    Account, AccountRootType, FinancialStatement, GlEntry, JournalEntryLine, PaymentEntry,
-    PaymentType, TrialBalanceRow,
+    Account, AccountRootType, ExchangeRate, FinancialStatement, GlEntry, JournalEntryLine,
+    PaymentEntry, PaymentType, PosShift, RetainerAccount, TrialBalanceRow,
 };
 pub use module::AccountingModule;
 pub use service::AccountingService;
@@ -16,6 +16,7 @@ mod tests {
     use super::*;
     use erp_kernel::{Database, EventBus, HybridLogicalClock, ModuleManager};
     use rust_decimal::Decimal;
+    use std::str::FromStr;
     use std::sync::Arc;
 
     fn setup_test_ctx() -> (Database, erp_kernel::ModuleContext, Arc<ModuleManager>) {
@@ -193,5 +194,37 @@ mod tests {
         assert_eq!(pnl.total_credit, Decimal::from(250)); // Income
         assert_eq!(pnl.total_debit, Decimal::from(50));   // Expenses
         assert_eq!(pnl.net_income_or_equity, Decimal::from(200)); // Net profit
+    }
+
+    #[test]
+    fn test_multi_currency_and_retainers_and_pos() {
+        let (db, _, _) = setup_test_ctx();
+        AccountingService::seed_default_chart_of_accounts(&db.conn()).expect("seed coa");
+
+        // 1. FX Rates
+        AccountingService::set_exchange_rate(&db.conn(), "USD", "EUR", Decimal::from_str("0.92").unwrap(), "2026-10-31", "Manual").unwrap();
+        let rate = AccountingService::get_exchange_rate(&db.conn(), "USD", "EUR").unwrap();
+        assert_eq!(rate, Decimal::from_str("0.92").unwrap());
+        let rates = AccountingService::list_exchange_rates(&db.conn()).unwrap();
+        assert_eq!(rates.len(), 1);
+
+        // 2. Retainers
+        let deposit = AccountingService::deposit_retainer(&db.conn(), "cust-1", Decimal::from(1000), "EUR").unwrap();
+        assert_eq!(deposit.balance, Decimal::from(1000));
+        let drawdown = AccountingService::drawdown_retainer(&db.conn(), "cust-1", Decimal::from(350), Some("inv-101")).unwrap();
+        assert_eq!(drawdown.balance, Decimal::from(650));
+
+        // 3. POS Cashier Mode
+        let shift = AccountingService::open_pos_shift(&db.conn(), "cashier-jane", Decimal::from(200)).unwrap();
+        assert_eq!(shift.status, "Open");
+        AccountingService::record_pos_sale(&db.conn(), &shift.id, Decimal::from(50), "Cash").unwrap();
+        AccountingService::record_pos_sale(&db.conn(), &shift.id, Decimal::from(80), "Card").unwrap();
+        let closed_shift = AccountingService::close_pos_shift(&db.conn(), &shift.id, Decimal::from(250)).unwrap();
+        assert_eq!(closed_shift.status, "Closed");
+        assert_eq!(closed_shift.discrepancy, Some(Decimal::ZERO)); // 200 float + 50 cash = 250 actual
+
+        let report = AccountingService::generate_shift_report(&db.conn(), &shift.id, true).unwrap();
+        assert!(report.contains("FINAL SHIFT Z-REPORT"));
+        assert!(report.contains("TOTAL REVENUE"));
     }
 }

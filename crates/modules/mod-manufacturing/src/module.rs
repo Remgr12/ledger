@@ -96,6 +96,46 @@ impl ErpModule for ManufacturingModule {
                 CREATE INDEX IF NOT EXISTS idx_genealogy_finished_lot ON work_order_genealogy(finished_lot_number);
                 "#,
             },
+            Migration {
+                version: 3,
+                name: "create_workstations_and_routing_tables",
+                sql: r#"
+                CREATE TABLE IF NOT EXISTS workstations (
+                    id TEXT PRIMARY KEY,
+                    code TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    hourly_rate TEXT NOT NULL DEFAULT '0.0',
+                    daily_capacity_hours REAL NOT NULL DEFAULT 8.0,
+                    status TEXT NOT NULL DEFAULT 'Active'
+                );
+                CREATE INDEX IF NOT EXISTS idx_ws_code ON workstations(code);
+
+                CREATE TABLE IF NOT EXISTS routing_operations (
+                    id TEXT PRIMARY KEY,
+                    bom_id TEXT NOT NULL REFERENCES boms(id),
+                    workstation_id TEXT NOT NULL REFERENCES workstations(id),
+                    operation_name TEXT NOT NULL,
+                    sequence_order INTEGER NOT NULL,
+                    setup_time_mins INTEGER NOT NULL DEFAULT 0,
+                    run_time_mins_per_unit INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE INDEX IF NOT EXISTS idx_ro_bom ON routing_operations(bom_id);
+
+                CREATE TABLE IF NOT EXISTS work_order_allocations (
+                    id TEXT PRIMARY KEY,
+                    work_order_id TEXT NOT NULL REFERENCES work_orders(id),
+                    routing_operation_id TEXT NOT NULL REFERENCES routing_operations(id),
+                    workstation_id TEXT NOT NULL REFERENCES workstations(id),
+                    scheduled_start TEXT NOT NULL,
+                    scheduled_end TEXT NOT NULL,
+                    duration_hours REAL NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'Scheduled'
+                );
+                CREATE INDEX IF NOT EXISTS idx_woa_workstation ON work_order_allocations(workstation_id);
+                CREATE INDEX IF NOT EXISTS idx_woa_wo ON work_order_allocations(work_order_id);
+                "#,
+            },
         ]
     }
 

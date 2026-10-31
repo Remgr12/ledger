@@ -410,4 +410,52 @@ mod tests {
         assert!(svg.contains("erp://item/WIDGET-PRO"));
         assert!(svg.contains("</svg>"));
     }
+
+    #[test]
+    fn test_v004_inventory_capabilities() {
+        let (ctx, _) = setup_test_context();
+
+        let wh1 = LocationService::create_location(&ctx, "WH-MAIN", "Main WH", None, LocationType::Warehouse, Some(0.0), Some(0.0)).unwrap();
+        let wh2 = LocationService::create_location(&ctx, "WH-SAT", "Satellite WH", None, LocationType::Warehouse, Some(50.0), Some(50.0)).unwrap();
+        let item = StockService::create_item(&ctx, "SER-PUMP-X", "Hydraulic Pump", None, "pcs", true, false, Decimal::from(5), None).unwrap();
+
+        // 1. Serial number tracking, maintenance log & RMA
+        let asset = StockService::register_serialized_asset(&ctx.db.conn(), &item.id, "SN-PUMP-9001", "Active", Some("2026-01-01"), Some("2028-01-01"), Some("CUST-1"), Some(&wh1.id), Some("2027-01-01")).unwrap();
+        assert_eq!(asset.serial_number, "SN-PUMP-9001");
+        let found = StockService::get_serialized_asset(&ctx.db.conn(), "SN-PUMP-9001").unwrap();
+        assert!(found.is_some());
+
+        let maint = StockService::add_asset_maintenance_log(&ctx.db.conn(), &asset.id, "Inspection", "Replaced seals", "Tech Bob", "2026-10-31", Some("2027-04-30")).unwrap();
+        assert_eq!(maint.log_type, "Inspection");
+        let logs = StockService::list_asset_maintenance_logs(&ctx.db.conn(), &asset.id).unwrap();
+        assert_eq!(logs.len(), 1);
+
+        let rma = StockService::create_rma_claim(&ctx.db.conn(), &asset.id, Some("CUST-1"), "Pressure valve leak").unwrap();
+        assert_eq!(rma.status, "Open");
+
+        // 2. Stock Transfer Orders
+        let xfer = StockService::create_transfer_order(&ctx.db.conn(), &wh1.id, &wh2.id, Some("DHL Freight"), Some("TRK-7788"), &[(item.id.clone(), Decimal::from(10))]).unwrap();
+        assert_eq!(xfer.status, "Draft");
+        assert_eq!(xfer.lines.len(), 1);
+
+        let dispatched = StockService::dispatch_transfer_order(&ctx.db.conn(), &xfer.id, "John Driver").unwrap();
+        assert_eq!(dispatched.status, "In-Transit");
+        assert_eq!(dispatched.driver_signature, Some("John Driver".to_string()));
+
+        let received = StockService::receive_transfer_order(&ctx.db.conn(), &xfer.id, &[(item.id.clone(), Decimal::from(9), Some("1 unit damaged in transit".to_string()))]).unwrap();
+        assert_eq!(received.status, "Completed");
+        assert_eq!(received.lines[0].received_qty, Decimal::from(9));
+        assert_eq!(received.lines[0].variance_qty, Decimal::from(1));
+
+        // 3. ABC Pareto Analysis, Aging Heatmap, EOQ
+        let abc = StockService::run_abc_analysis(&ctx.db.conn()).unwrap();
+        assert!(!abc.items.is_empty());
+
+        let heatmap = StockService::get_inventory_aging_heatmap(&ctx.db.conn()).unwrap();
+        assert!(!heatmap.is_empty());
+
+        let eoq = StockService::calculate_eoq_and_safety_stock(&ctx.db.conn(), &item.id).unwrap();
+        assert!(eoq.recommended_eoq > Decimal::ZERO);
+        assert!(eoq.dynamic_safety_stock > Decimal::ZERO);
+    }
 }

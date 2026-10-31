@@ -124,3 +124,11 @@ impl From<rusqlite::Error> for ErpFfiError {
         }
     }
 }
+
+impl From<std::io::Error> for ErpFfiError {
+    fn from(e: std::io::Error) -> Self {
+        ErpFfiError::InternalError {
+            details: e.to_string(),
+        }
+    }
+}

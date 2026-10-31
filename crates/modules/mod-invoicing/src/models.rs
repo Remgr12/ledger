@@ -60,3 +60,37 @@ pub struct Invoice {
     pub created_at: DateTime<Utc>,
     pub line_items: Vec<InvoiceLineItem>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecurringSchedule {
+    pub id: String,
+    pub customer_id: String,
+    pub plan_name: String,
+    pub frequency: String, // "Weekly", "Monthly", "Quarterly", "Annually"
+    pub amount: Decimal,
+    pub currency: String,
+    pub next_run_date: String,
+    pub is_active: bool,
+    pub auto_send: bool,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EInvoiceParty {
+    pub name: String,
+    pub vat_id: String,
+    pub street: String,
+    pub city: String,
+    pub postal_code: String,
+    pub country_code: String,
+    pub iban: Option<String>,
+    pub bic: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EInvoiceValidationReport {
+    pub is_valid: bool,
+    pub standard_profile: String, // "Factur-X EN 16931 (COMFORT)"
+    pub rule_checks_passed: usize,
+    pub validation_messages: Vec<String>,
+}

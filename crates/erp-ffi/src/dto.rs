@@ -124,6 +124,15 @@ pub struct InvoiceLineDto {
 }
 
 #[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct InvoiceLineInputDto {
+    pub item_id: Option<String>,
+    pub description: String,
+    pub quantity: String,
+    pub unit_price: String,
+    pub tax_rate: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
 pub struct InvoiceDto {
     pub id: String,
     pub invoice_number: String,
@@ -436,4 +445,367 @@ pub struct ComponentGenealogyDto {
     pub quantity: String,
     pub completed_at: Option<String>,
     pub components: Vec<ComponentGenealogyEntryDto>,
+}
+
+// ============================================================================
+// v0.0.4 Release DTOs (LEDGER-16 to LEDGER-28)
+// ============================================================================
+
+// LEDGER-16: Multi-up Sheet PDF Layouts & Barcode Printing
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct MultiUpLabelItemDto {
+    pub item_id: String,
+    pub sku: String,
+    pub name: String,
+    pub qr_code_uri: String,
+    pub barcode: Option<String>,
+    pub lot_or_serial: Option<String>,
+    pub price: Option<String>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct MultiUpSheetLayoutDto {
+    pub name: String,
+    pub columns: u32,
+    pub rows: u32,
+    pub page_width_mm: f64,
+    pub page_height_mm: f64,
+    pub label_width_mm: f64,
+    pub label_height_mm: f64,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct BatchPrintProgressDto {
+    pub total_labels: u32,
+    pub printed_labels: u32,
+    pub is_completed: bool,
+}
+
+// LEDGER-17: BLE Barcode Scanners & Digital Weight Scale Integration
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct BleDeviceDto {
+    pub id: String,
+    pub name: String,
+    pub address: String,
+    pub device_type: String, // "scanner" | "scale" | "printer"
+    pub is_connected: bool,
+    pub battery_level: Option<u8>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct ScaleReadingDto {
+    pub raw_weight_grams: f64,
+    pub tare_weight_grams: f64,
+    pub net_weight_grams: f64,
+    pub is_stable: bool,
+    pub unit: String,
+    pub unit_piece_weight_grams: Option<f64>,
+    pub calculated_pieces: Option<u32>,
+}
+
+// LEDGER-18: Multi-Currency Accounting & Offline FX Tables
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct ExchangeRateDto {
+    pub base_currency: String,
+    pub target_currency: String,
+    pub rate: f64,
+    pub effective_date: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct FxGainLossResultDto {
+    pub invoice_id: String,
+    pub realized_gain_loss: String,
+    pub currency: String,
+    pub journal_entry_id: Option<String>,
+}
+
+// LEDGER-19: Recurring Subscription Invoicing & Client Retainer Deposits
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct RecurringScheduleDto {
+    pub id: String,
+    pub customer_id: String,
+    pub frequency: String,
+    pub next_run_date: String,
+    pub amount: String,
+    pub currency: String,
+    pub description: String,
+    pub is_active: bool,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct RetainerAccountDto {
+    pub customer_id: String,
+    pub balance: String,
+    pub currency: String,
+    pub last_updated: String,
+}
+
+// LEDGER-20: ABC Inventory Pareto Analysis, Aging Heatmaps, Dynamic Safety Stock & EOQ
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct AbcItemTierDto {
+    pub item_id: String,
+    pub sku: String,
+    pub name: String,
+    pub annual_value: f64,
+    pub cumulative_percentage: f64,
+    pub tier: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct AbcAnalysisDto {
+    pub total_value: f64,
+    pub tier_a_count: u32,
+    pub tier_b_count: u32,
+    pub tier_c_count: u32,
+    pub items: Vec<AbcItemTierDto>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct LocationAgingDto {
+    pub location_id: String,
+    pub location_code: String,
+    pub average_age_days: f64,
+    pub oldest_item_days: u32,
+    pub color_code: String,
+    pub item_count: u32,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct EoqCalculationDto {
+    pub item_id: String,
+    pub sku: String,
+    pub economic_order_quantity: f64,
+    pub safety_stock: f64,
+    pub reorder_point: f64,
+    pub annual_demand: f64,
+}
+
+// LEDGER-21: Database Encryption at Rest & Authenticated P2P Sync
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct SecurityStatusDto {
+    pub is_encrypted: bool,
+    pub cipher_suite: String,
+    pub known_psk_peers_count: u32,
+    pub local_node_id: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct PeerPairingPayloadDto {
+    pub node_id: String,
+    pub psk: String,
+    pub qr_uri: String,
+    pub fingerprint: String,
+}
+
+// LEDGER-22: On-Device Offline OCR Intake for Receipts & Vendor Invoices
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct OcrBoundingBoxDto {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct OcrReceiptLineDto {
+    pub description: String,
+    pub quantity: f64,
+    pub unit_price: f64,
+    pub total_amount: f64,
+    pub confidence: f32,
+    pub bounding_box: Option<OcrBoundingBoxDto>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct OcrReceiptResultDto {
+    pub merchant_name: Option<String>,
+    pub date: Option<String>,
+    pub total_amount: Option<f64>,
+    pub tax_amount: Option<f64>,
+    pub currency: Option<String>,
+    pub lines: Vec<OcrReceiptLineDto>,
+    pub confidence: f32,
+    pub raw_text: String,
+}
+
+// LEDGER-23: Serial Number Tracking, Warranty Passport & Maintenance Logs
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct SerializedAssetPassportDto {
+    pub id: String,
+    pub serial_number: String,
+    pub item_id: String,
+    pub item_name: String,
+    pub sku: String,
+    pub status: String,
+    pub warranty_expiry: Option<String>,
+    pub current_location_id: Option<String>,
+    pub created_at: String,
+    pub qr_code_uri: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct AssetMaintenanceLogDto {
+    pub id: String,
+    pub asset_id: String,
+    pub maintenance_type: String,
+    pub description: String,
+    pub performed_by: String,
+    pub performed_at: String,
+    pub next_due_date: Option<String>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct RmaClaimDto {
+    pub id: String,
+    pub rma_number: String,
+    pub asset_id: String,
+    pub customer_id: String,
+    pub issue_description: String,
+    pub status: String,
+    pub resolution: Option<String>,
+    pub created_at: String,
+}
+
+// LEDGER-24: Offline POS Cashier Mode, Cash Drawer Kick & Shift Reconciliation
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct PosShiftDto {
+    pub id: String,
+    pub register_id: String,
+    pub cashier_id: String,
+    pub opened_at: String,
+    pub closed_at: Option<String>,
+    pub starting_cash: String,
+    pub cash_sales: String,
+    pub expected_cash: String,
+    pub actual_cash: Option<String>,
+    pub variance: Option<String>,
+    pub status: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct ShiftReportDto {
+    pub shift_id: String,
+    pub report_type: String,
+    pub generated_at: String,
+    pub content: String,
+}
+
+// LEDGER-25: Multi-Warehouse Transfer Orders & In-Transit Tracking
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct StockTransferLineDto {
+    pub id: String,
+    pub item_id: String,
+    pub sku: String,
+    pub item_name: String,
+    pub requested_qty: String,
+    pub shipped_qty: String,
+    pub received_qty: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct StockTransferOrderDto {
+    pub id: String,
+    pub transfer_number: String,
+    pub source_location_id: String,
+    pub destination_location_id: String,
+    pub in_transit_location_id: Option<String>,
+    pub status: String,
+    pub created_at: String,
+    pub dispatched_at: Option<String>,
+    pub received_at: Option<String>,
+    pub lines: Vec<StockTransferLineDto>,
+}
+
+// LEDGER-26: Workstation Capacity Planning & Gantt Production Scheduling
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct WorkstationDto {
+    pub id: String,
+    pub code: String,
+    pub name: String,
+    pub capacity_hours_per_day: f64,
+    pub hourly_rate: f64,
+    pub is_active: bool,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct RoutingOperationDto {
+    pub id: String,
+    pub bom_id: String,
+    pub workstation_id: String,
+    pub operation_name: String,
+    pub sequence: u32,
+    pub standard_duration_minutes: u32,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct WorkOrderAllocationDto {
+    pub id: String,
+    pub work_order_id: String,
+    pub workstation_id: String,
+    pub operation_id: String,
+    pub start_time: String,
+    pub end_time: String,
+    pub allocated_minutes: u32,
+    pub status: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct WorkstationCapacitySummaryDto {
+    pub workstation_id: String,
+    pub workstation_code: String,
+    pub date: String,
+    pub capacity_minutes: u32,
+    pub allocated_minutes: u32,
+    pub utilization_percent: f64,
+    pub is_overloaded: bool,
+}
+
+// LEDGER-27: Automated NAS/SFTP Backup Scheduler & USB Drive Sync
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct BackupArchiveDto {
+    pub filename: String,
+    pub filepath: String,
+    pub size_bytes: u64,
+    pub created_at: String,
+    pub is_verified: bool,
+    pub checksum: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct BackupPolicyConfigDto {
+    pub auto_backup_enabled: bool,
+    pub target_directory: String,
+    pub retention_count: u32,
+    pub backup_frequency_hours: u32,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct UsbDriveInfoDto {
+    pub device_path: String,
+    pub mount_point: String,
+    pub total_bytes: u64,
+    pub free_bytes: u64,
+}
+
+// LEDGER-28: European E-Invoicing Compliance (Factur-X / ZUGFeRD 2.2 / UBL 2.1)
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct EInvoiceValidationReportDto {
+    pub is_valid: bool,
+    pub profile: String,
+    pub syntax: String,
+    pub errors: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, Serialize, Deserialize)]
+pub struct IncomingEInvoiceDto {
+    pub invoice_number: String,
+    pub seller_name: String,
+    pub seller_vat: Option<String>,
+    pub issue_date: String,
+    pub total_amount: f64,
+    pub currency: String,
+    pub lines_count: u32,
+    pub xml_content: String,
 }

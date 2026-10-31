@@ -209,6 +209,9 @@ pub enum ParsedQr {
         lot: Option<String>,
         serial: Option<String>,
     },
+    Serial {
+        serial_number: String,
+    },
     Gs1(Gs1BarcodeData),
     ExternalBarcode {
         raw: String,
@@ -253,4 +256,115 @@ pub enum ScanResolution {
         raw_payload: String,
         message: String,
     },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedAsset {
+    pub id: String,
+    pub item_id: String,
+    pub serial_number: String,
+    pub status: String,
+    pub warranty_start_date: Option<String>,
+    pub warranty_end_date: Option<String>,
+    pub customer_id: Option<String>,
+    pub current_location_id: Option<String>,
+    pub next_calibration_date: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssetMaintenanceLog {
+    pub id: String,
+    pub asset_id: String,
+    pub log_type: String,
+    pub notes: String,
+    pub performed_by: String,
+    pub service_date: String,
+    pub next_due_date: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RmaClaim {
+    pub id: String,
+    pub rma_number: String,
+    pub asset_id: String,
+    pub customer_id: Option<String>,
+    pub issue_description: String,
+    pub status: String,
+    pub resolution: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StockTransferLine {
+    pub id: String,
+    pub transfer_id: String,
+    pub item_id: String,
+    pub sku: String,
+    pub item_name: String,
+    pub requested_qty: Decimal,
+    pub dispatched_qty: Decimal,
+    pub received_qty: Decimal,
+    pub variance_qty: Decimal,
+    pub variance_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StockTransferOrder {
+    pub id: String,
+    pub transfer_number: String,
+    pub origin_location_id: String,
+    pub origin_location_name: String,
+    pub destination_location_id: String,
+    pub destination_location_name: String,
+    pub in_transit_location_id: String,
+    pub status: String,
+    pub carrier_name: Option<String>,
+    pub tracking_number: Option<String>,
+    pub driver_signature: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub dispatched_at: Option<String>,
+    pub received_at: Option<String>,
+    pub lines: Vec<StockTransferLine>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AbcItemTier {
+    pub item_id: String,
+    pub sku: String,
+    pub name: String,
+    pub annual_consumption_value: Decimal,
+    pub cumulative_value_percentage: Decimal,
+    pub tier: String, // "A", "B", "C"
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AbcAnalysisResult {
+    pub items: Vec<AbcItemTier>,
+    pub total_consumption_value: Decimal,
+    pub class_a_count: usize,
+    pub class_b_count: usize,
+    pub class_c_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocationAging {
+    pub location_id: String,
+    pub location_code: String,
+    pub location_name: String,
+    pub map_x: Option<f64>,
+    pub map_y: Option<f64>,
+    pub days_since_last_movement: u32,
+    pub total_quant_value: Decimal,
+    pub aging_status: String, // "Fresh" (0-30d), "Normal" (31-90d), "Aging" (91-180d), "DeadStock" (>180d)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EoqCalculation {
+    pub item_id: String,
+    pub sku: String,
+    pub recommended_eoq: Decimal,
+    pub dynamic_safety_stock: Decimal,
+    pub reorder_point: Decimal,
 }

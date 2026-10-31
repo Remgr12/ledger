@@ -94,5 +94,78 @@ pub fn get_migrations() -> Vec<Migration> {
             CREATE INDEX IF NOT EXISTS idx_lots_item ON inventory_lots(item_id);
             "#,
         },
+        Migration {
+            version: 3,
+            name: "create_v004_inventory_tables",
+            sql: r#"
+            CREATE TABLE IF NOT EXISTS serialized_assets (
+                id TEXT PRIMARY KEY,
+                item_id TEXT NOT NULL REFERENCES inventory_items(id),
+                serial_number TEXT NOT NULL UNIQUE,
+                status TEXT NOT NULL DEFAULT 'Active',
+                warranty_start_date TEXT,
+                warranty_end_date TEXT,
+                customer_id TEXT,
+                current_location_id TEXT,
+                next_calibration_date TEXT,
+                created_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_serial_sn ON serialized_assets(serial_number);
+            CREATE INDEX IF NOT EXISTS idx_serial_item ON serialized_assets(item_id);
+
+            CREATE TABLE IF NOT EXISTS asset_maintenance_logs (
+                id TEXT PRIMARY KEY,
+                asset_id TEXT NOT NULL REFERENCES serialized_assets(id),
+                log_type TEXT NOT NULL,
+                notes TEXT NOT NULL,
+                performed_by TEXT NOT NULL,
+                service_date TEXT NOT NULL,
+                next_due_date TEXT,
+                created_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_maint_asset ON asset_maintenance_logs(asset_id);
+
+            CREATE TABLE IF NOT EXISTS rma_claims (
+                id TEXT PRIMARY KEY,
+                rma_number TEXT NOT NULL UNIQUE,
+                asset_id TEXT NOT NULL REFERENCES serialized_assets(id),
+                customer_id TEXT,
+                issue_description TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'Open',
+                resolution TEXT,
+                created_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_rma_num ON rma_claims(rma_number);
+
+            CREATE TABLE IF NOT EXISTS stock_transfer_orders (
+                id TEXT PRIMARY KEY,
+                transfer_number TEXT NOT NULL UNIQUE,
+                origin_location_id TEXT NOT NULL REFERENCES storage_locations(id),
+                destination_location_id TEXT NOT NULL REFERENCES storage_locations(id),
+                in_transit_location_id TEXT NOT NULL REFERENCES storage_locations(id),
+                status TEXT NOT NULL DEFAULT 'Draft',
+                carrier_name TEXT,
+                tracking_number TEXT,
+                driver_signature TEXT,
+                created_at TEXT NOT NULL,
+                dispatched_at TEXT,
+                received_at TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_transfer_num ON stock_transfer_orders(transfer_number);
+            CREATE INDEX IF NOT EXISTS idx_transfer_status ON stock_transfer_orders(status);
+
+            CREATE TABLE IF NOT EXISTS stock_transfer_lines (
+                id TEXT PRIMARY KEY,
+                transfer_id TEXT NOT NULL REFERENCES stock_transfer_orders(id),
+                item_id TEXT NOT NULL REFERENCES inventory_items(id),
+                requested_qty TEXT NOT NULL,
+                dispatched_qty TEXT NOT NULL DEFAULT '0',
+                received_qty TEXT NOT NULL DEFAULT '0',
+                variance_qty TEXT NOT NULL DEFAULT '0',
+                variance_reason TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_stl_transfer ON stock_transfer_lines(transfer_id);
+            "#,
+        },
     ]
 }

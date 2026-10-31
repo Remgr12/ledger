@@ -95,6 +95,45 @@ impl ErpModule for AccountingModule {
                 CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(reference_invoice_id);
                 "#,
             },
+            Migration {
+                version: 2,
+                name: "create_v004_accounting_tables",
+                sql: r#"
+                CREATE TABLE IF NOT EXISTS exchange_rates (
+                    id TEXT PRIMARY KEY,
+                    from_currency TEXT NOT NULL,
+                    to_currency TEXT NOT NULL,
+                    rate TEXT NOT NULL,
+                    effective_date TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_fx_currencies ON exchange_rates(from_currency, to_currency);
+
+                CREATE TABLE IF NOT EXISTS retainer_accounts (
+                    id TEXT PRIMARY KEY,
+                    customer_id TEXT NOT NULL UNIQUE,
+                    balance TEXT NOT NULL DEFAULT '0',
+                    currency TEXT NOT NULL DEFAULT 'EUR',
+                    liability_account_id TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS pos_shifts (
+                    id TEXT PRIMARY KEY,
+                    cashier_id TEXT NOT NULL,
+                    opened_at TEXT NOT NULL,
+                    closed_at TEXT,
+                    opening_float TEXT NOT NULL,
+                    cash_sales TEXT NOT NULL DEFAULT '0',
+                    card_sales TEXT NOT NULL DEFAULT '0',
+                    qr_sales TEXT NOT NULL DEFAULT '0',
+                    closing_cash_actual TEXT,
+                    discrepancy TEXT,
+                    status TEXT NOT NULL DEFAULT 'Open'
+                );
+                "#,
+            },
         ]
     }
 

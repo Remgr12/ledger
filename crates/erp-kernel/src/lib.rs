@@ -1,3 +1,4 @@
+pub mod backup;
 pub mod db;
 pub mod errors;
 pub mod event_bus;
@@ -5,8 +6,10 @@ pub mod event_log;
 pub mod hlc;
 pub mod module;
 pub mod module_manager;
+pub mod security;
 pub mod sync;
 
+pub use backup::{BackupArchive, BackupManager, BackupPolicyConfig, UsbDriveInfo};
 pub use db::Database;
 pub use errors::ErpKernelError;
 pub use event_bus::{DomainEvent, EventBus, EventHandler};
@@ -14,6 +17,7 @@ pub use event_log::EventLogStore;
 pub use hlc::{HlcTimestamp, HybridLogicalClock};
 pub use module::{ErpModule, Migration, ModuleContext, ModuleRoute};
 pub use module_manager::{ModuleManager, ModuleStatus};
+pub use security::{PeerPairingPayload, SecurityManager, SecurityStatus};
 pub use sync::SyncEngine;
 
 #[cfg(test)]
@@ -180,5 +184,45 @@ mod tests {
         SyncEngine::mark_events_synced(&db1.conn(), &[ev1.event_id, ev2.event_id]).expect("mark synced");
         let remaining_unsynced = SyncEngine::export_unsynced_events(&db1.conn(), 10).expect("export remaining");
         assert_eq!(remaining_unsynced.len(), 0);
+    }
+
+    #[test]
+    fn test_security_manager_and_pairing() {
+        let sec = SecurityManager::new();
+        let status = sec.get_status();
+        assert!(status.is_encrypted);
+        assert!(status.authenticated_p2p_enabled);
+
+        let uri = sec.generate_pairing_uri("node-desk-1", "Warehouse Station 1", "super_secret_psk_99", "192.168.1.50:8080");
+        assert!(uri.starts_with("erp://pair?"));
+
+        let payload = sec.parse_pairing_uri(&uri).expect("valid parse");
+        assert_eq!(payload.node_id, "node-desk-1");
+        assert_eq!(payload.pre_shared_key, "super_secret_psk_99");
+
+        let challenge = "auth_challenge_nonce_12345";
+        let token = sec.compute_handshake_token("node-desk-1", challenge).expect("compute token");
+        assert!(sec.verify_handshake_token("node-desk-1", challenge, &token));
+        assert!(!sec.verify_handshake_token("node-desk-1", challenge, "wrong_token"));
+    }
+
+    #[test]
+    fn test_backup_manager_wal_and_verification() {
+        let db = Database::open_in_memory().expect("open memory db");
+        db.conn().execute("CREATE TABLE test_data (id TEXT PRIMARY KEY, val TEXT);", []).expect("create table");
+        db.conn().execute("INSERT INTO test_data VALUES ('1', 'data');", []).expect("insert");
+
+        let temp_dir = std::env::temp_dir().join(format!("ledger_backup_test_{}", uuid::Uuid::new_v4()));
+        let archive = BackupManager::create_backup(&db, temp_dir.to_str().unwrap(), "Local", None).expect("backup");
+        assert!(archive.verified_ok);
+        assert!(archive.size_bytes > 0);
+
+        let backups = BackupManager::list_backups(temp_dir.to_str().unwrap()).expect("list");
+        assert_eq!(backups.len(), 1);
+
+        let drives = BackupManager::detect_mounted_usb_drives();
+        assert!(!drives.is_empty());
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

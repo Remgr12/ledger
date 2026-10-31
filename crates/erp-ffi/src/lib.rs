@@ -669,4 +669,262 @@ mod tests {
         assert_eq!(unbilled.unbilled_entries_count, 1);
         println!(">>> ALL V0.0.3 TESTS COMPLETED SUCCESSFULLY!");
     }
+
+    #[test]
+    fn test_v004_features_integration() {
+        let engine = init_erp(":memory:".to_string()).expect("init erp for v0.0.4 tests");
+
+        // 1. LEDGER-16: Multi-up Sheet PDF Layouts & Barcode Printing
+        let labels = vec![
+            MultiUpLabelItemDto {
+                item_id: "item-1".into(),
+                sku: "SKU-BOLT-M8".into(),
+                name: "Hex Bolt M8x40".into(),
+                qr_code_uri: "erp://sku/SKU-BOLT-M8".into(),
+                barcode: Some("4012345678901".into()),
+                lot_or_serial: Some("LOT-2026-A".into()),
+                price: Some("0.45".into()),
+            },
+            MultiUpLabelItemDto {
+                item_id: "item-2".into(),
+                sku: "SKU-NUT-M8".into(),
+                name: "Hex Nut M8 Zinc".into(),
+                qr_code_uri: "erp://sku/SKU-NUT-M8".into(),
+                barcode: Some("4012345678902".into()),
+                lot_or_serial: Some("LOT-2026-B".into()),
+                price: Some("0.20".into()),
+            },
+        ];
+        let pdf_avery = engine.generate_multi_up_labels_pdf("Avery5160".into(), labels.clone()).expect("generate avery pdf");
+        assert!(pdf_avery.starts_with(b"%PDF-1.4"));
+        assert!(pdf_avery.len() > 200);
+
+        let print_progress = engine.batch_stream_thermal_labels(labels).expect("batch stream");
+        assert_eq!(print_progress.total_labels, 2);
+        assert!(print_progress.is_completed);
+
+        // 2. LEDGER-17: BLE Barcode Scanners & Digital Weight Scale Integration
+        let ble_devs = engine.list_ble_devices().expect("list ble");
+        assert!(ble_devs.len() >= 3);
+        let scanner = engine.connect_ble_device("ble-ds3678".into()).expect("connect scanner");
+        assert!(scanner.is_connected);
+
+        let scale_reading = engine.get_scale_reading("ble-ps60".into(), Some(50.0), Some(2.5)).expect("scale reading");
+        assert_eq!(scale_reading.raw_weight_grams, 1450.0);
+        assert_eq!(scale_reading.tare_weight_grams, 50.0);
+        assert_eq!(scale_reading.net_weight_grams, 1400.0);
+        assert_eq!(scale_reading.calculated_pieces, Some(560)); // 1400 / 2.5 = 560
+
+        let pieces = engine.calculate_piece_count(500.0, 5.0).expect("piece count");
+        assert_eq!(pieces, 100);
+
+        // 3. LEDGER-18: Multi-Currency Accounting & Offline FX Tables
+        let rate_usd = engine.set_exchange_rate("EUR".into(), "USD".into(), 1.085, "2026-10-31".into()).expect("set fx");
+        assert_eq!(rate_usd.target_currency, "USD");
+        assert_eq!(rate_usd.rate, 1.085);
+
+        let rates = engine.get_exchange_rates().expect("get fx rates");
+        assert!(!rates.is_empty());
+
+        let fx_res = engine.record_fx_gain_loss("INV-2026-001".into(), 1.08, 1.10, "1000.00".into(), "USD".into()).expect("record fx");
+        assert_eq!(fx_res.realized_gain_loss, "20.00");
+
+        // 4. LEDGER-19: Recurring Subscription Invoicing & Client Retainer Deposits
+        let cust = engine.create_contact("Customer".into(), "Enterprise Client GmbH".into(), Some("info@client.de".into()), None, None, None).expect("create contact");
+        let sched = engine.create_recurring_schedule(cust.id.clone(), "Monthly Maintenance Tier 1".into(), "Monthly".into(), "499.00".into(), "EUR".into(), "2026-11-01".into()).expect("create sched");
+        assert_eq!(sched.frequency, "Monthly");
+        let sched_list = engine.list_recurring_schedules().expect("list sched");
+        assert_eq!(sched_list.len(), 1);
+
+        let triggered = engine.trigger_recurring_invoices("2026-11-01".into()).expect("trigger recurring");
+        assert_eq!(triggered, 1);
+
+        let ret_dep = engine.deposit_retainer(cust.id.clone(), "2500.00".into(), "EUR".into()).expect("deposit retainer");
+        assert_eq!(ret_dep.balance, "2500.00");
+
+        let ret_draw = engine.drawdown_retainer(cust.id.clone(), "500.00".into(), "INV-999".into()).expect("drawdown retainer");
+        assert_eq!(ret_draw.balance, "2000.00");
+
+        // 5. LEDGER-20: ABC Inventory Pareto Analysis & Dynamic EOQ
+        let loc1 = engine.create_location("WH-ABC".into(), "ABC Warehouse".into(), None, "Warehouse".into(), None, None).expect("loc");
+        let it1 = engine.create_item("IT-HIGH".into(), "High Value Engine".into(), None, "ea".into(), false, false, "5".into(), None).expect("it1");
+        let it2 = engine.create_item("IT-LOW".into(), "Low Value Washer".into(), None, "ea".into(), false, false, "100".into(), None).expect("it2");
+        engine.move_stock(it1.id.clone(), None, Some(loc1.id.clone()), "10".into(), "Receive".into(), None, None).expect("move it1");
+        engine.move_stock(it2.id.clone(), None, Some(loc1.id.clone()), "500".into(), "Receive".into(), None, None).expect("move it2");
+
+        let abc = engine.run_abc_analysis().expect("abc analysis");
+        assert!(abc.items.len() >= 2);
+        assert_eq!(abc.items[0].tier, "A");
+
+        let heatmap = engine.get_inventory_aging_heatmap().expect("aging heatmap");
+        assert!(!heatmap.is_empty());
+
+        let eoq = engine.calculate_eoq_and_safety_stock(it1.id.clone(), 60.0, 50.0, 0.2, 250.0, 7.0, 3.0).expect("calc eoq");
+        assert!(eoq.economic_order_quantity > 0.0);
+        assert!(eoq.safety_stock > 0.0);
+
+        // 6. LEDGER-21: Database Encryption at Rest & Authenticated P2P Sync
+        let sec_status = engine.get_security_status().expect("security status");
+        assert!(sec_status.is_encrypted);
+
+        let qr_payload = engine.generate_pairing_qr().expect("gen qr pair");
+        assert!(qr_payload.qr_uri.starts_with("erp://pair?"));
+        let parsed_pair = engine.parse_pairing_qr(qr_payload.qr_uri.clone()).expect("parse qr pair");
+        assert_eq!(parsed_pair.node_id, qr_payload.node_id);
+
+        let challenge = "auth_handshake_challenge_12345";
+        let valid_token = engine.security.compute_handshake_token(&qr_payload.node_id, challenge).expect("token");
+        let is_valid = engine.verify_peer_handshake(qr_payload.node_id.clone(), challenge.into(), valid_token).expect("verify");
+        assert!(is_valid);
+
+        // 7. LEDGER-22: On-Device Offline OCR Intake for Receipts & Vendor Invoices
+        let ocr_sample = "Vendor: Bavarian Machine Tools GmbH\nDate: 2026-10-31\nPrecision End Mill 4 x 30.00\nTotal: 120.00 EUR";
+        let ocr_res = engine.process_ocr_receipt_text(ocr_sample.into()).expect("process ocr");
+        assert_eq!(ocr_res.merchant_name.as_deref(), Some("Bavarian Machine Tools GmbH"));
+
+        let supplier = engine.create_contact("Supplier".into(), "Bavarian Machine Tools GmbH".into(), None, None, None, None).expect("supplier");
+        let po_from_ocr = engine.convert_ocr_to_draft_po(ocr_res, supplier.name.clone(), loc1.id.clone()).expect("ocr to po");
+        assert_eq!(po_from_ocr.supplier_id, supplier.name);
+
+        // 8. LEDGER-23: Serial Number Tracking, Warranty Passport & Maintenance Logs
+        let serialized_item = engine.create_item("ROBOT-ARM-6AXIS".into(), "6-Axis Articulated Robot Arm".into(), None, "unit".into(), true, false, "1".into(), None).expect("ser item");
+        let passport = engine.register_serialized_asset("SN-ROBOT-9901".into(), serialized_item.id.clone(), Some("2029-10-31".into()), Some(loc1.id.clone())).expect("reg asset");
+        assert_eq!(passport.serial_number, "SN-ROBOT-9901");
+        assert_eq!(passport.qr_code_uri, "erp://serial/SN-ROBOT-9901");
+
+        let fetched_pass = engine.get_asset_passport("SN-ROBOT-9901".into()).expect("get pass");
+        assert_eq!(fetched_pass.id, passport.id);
+
+        let maint_log = engine.add_maintenance_log(passport.id.clone(), "Calibration".into(), "Optical joint encoder calibration".into(), "lead_engineer".into(), Some("2027-10-31".into())).expect("maint log");
+        assert_eq!(maint_log.maintenance_type, "Calibration");
+
+        let logs = engine.list_maintenance_logs(passport.id.clone()).expect("list logs");
+        assert_eq!(logs.len(), 1);
+
+        let rma = engine.create_rma_claim(passport.id.clone(), cust.id.clone(), "Joint 3 harmonic drive backlash".into()).expect("rma claim");
+        assert_eq!(rma.status, "Open");
+        let rmas = engine.list_rma_claims().expect("list rmas");
+        assert_eq!(rmas.len(), 1);
+
+        // 9. LEDGER-24: Offline POS Cashier Mode, Cash Drawer Kick & Shift Reconciliation
+        let shift = engine.open_pos_shift("REG-01".into(), "cashier_sarah".into(), "200.00".into()).expect("open shift");
+        assert_eq!(shift.status, "Open");
+        assert_eq!(shift.starting_cash, "200.00");
+
+        let shift_after_sale = engine.record_pos_sale(shift.id.clone(), "75.50".into(), "cash".into()).expect("pos sale");
+        assert_eq!(shift_after_sale.cash_sales, "75.50");
+
+        let shift_closed = engine.close_pos_shift(shift.id.clone(), "275.50".into()).expect("close shift");
+        assert_eq!(shift_closed.status, "Closed");
+        assert_eq!(shift_closed.variance, Some("0.00".into()));
+
+        let z_report = engine.generate_shift_report(shift.id.clone(), "Z".into()).expect("z report");
+        assert!(z_report.content.contains("FINAL SHIFT Z-REPORT"));
+
+        // 10. LEDGER-25: Multi-Warehouse Transfer Orders & In-Transit Tracking
+        let loc2 = engine.create_location("WH-BRANCH".into(), "Branch Facility".into(), None, "Warehouse".into(), None, None).expect("loc2");
+        let xfer = engine.create_transfer_order(
+            loc1.id.clone(),
+            loc2.id.clone(),
+            vec![StockTransferLineDto {
+                id: "".into(),
+                item_id: it1.id.clone(),
+                sku: it1.sku.clone(),
+                item_name: it1.name.clone(),
+                requested_qty: "4".into(),
+                shipped_qty: "0".into(),
+                received_qty: "0".into(),
+            }],
+        ).expect("create xfer");
+        assert_eq!(xfer.status, "Draft");
+
+        let xfer_disp = engine.dispatch_transfer_order(xfer.id.clone()).expect("disp xfer");
+        assert_eq!(xfer_disp.status, "In-Transit");
+
+        let xfer_rec = engine.receive_transfer_order(xfer.id.clone(), vec!["4".into()]).expect("rec xfer");
+        assert_eq!(xfer_rec.status, "Completed");
+        assert_eq!(xfer_rec.lines[0].received_qty, "4");
+
+        let all_xfers = engine.list_transfer_orders().expect("list xfers");
+        assert!(!all_xfers.is_empty());
+
+        // 11. LEDGER-26: Workstation Capacity Planning & Gantt Production Scheduling
+        let ws = engine.create_workstation("WS-CNC-01".into(), "5-Axis CNC Milling Center".into(), 16.0, 85.0).expect("ws");
+        assert_eq!(ws.code, "WS-CNC-01");
+
+        let bom = engine.create_bom(
+            "BOM-ROBOT-01".into(),
+            it1.id.clone(),
+            "Engine BOM".into(),
+            "1".into(),
+            vec![BomComponentDto {
+                id: "".into(),
+                item_id: it2.id.clone(),
+                quantity: "10".into(),
+                scrap_percentage: "0".into(),
+                notes: None,
+            }],
+            None,
+        ).expect("bom");
+        let ro = engine.add_routing_operation(bom.id.clone(), ws.id.clone(), "Precision Milling Block".into(), 1, 45).expect("ro");
+        assert_eq!(ro.operation_name, "Precision Milling Block");
+
+        let wo = engine.create_work_order("WO-ROBOT-01".into(), bom.id.clone(), "10".into(), loc1.id.clone(), loc2.id.clone()).expect("wo");
+        let alloc = engine.schedule_work_order(wo.id.clone(), ws.id.clone(), ro.id.clone(), "2026-11-02T08:00:00Z".into(), 120).expect("alloc");
+        assert_eq!(alloc.allocated_minutes, 120);
+
+        let cap_summary = engine.get_workstation_capacity_schedule(ws.id.clone(), "2026-11-02".into()).expect("cap sched");
+        assert_eq!(cap_summary.workstation_code, "WS-CNC-01");
+
+        // 12. LEDGER-27: Automated NAS/SFTP Backup Scheduler & USB Drive Sync
+        let backup_cfg = engine.configure_backup_policy("/tmp/ledger_test_backups".into(), 5, 12, true).expect("config backup");
+        assert!(backup_cfg.auto_backup_enabled);
+        assert_eq!(backup_cfg.retention_count, 5);
+
+        let backup_archive = engine.trigger_automated_backup().expect("trigger backup");
+        assert!(backup_archive.is_verified);
+        assert!(backup_archive.size_bytes > 0);
+
+        let archives = engine.list_backup_archives().expect("list backups");
+        assert!(!archives.is_empty());
+
+        let is_ok = engine.verify_backup_file(backup_archive.filepath.clone()).expect("verify backup file");
+        assert!(is_ok);
+
+        let _usbs = engine.detect_usb_drives().expect("detect usbs");
+
+        // 13. LEDGER-28: European E-Invoicing Compliance (Factur-X / ZUGFeRD 2.2 / UBL 2.1)
+        let invoice = engine.create_invoice(
+            "INV-2026-EUR-01".into(),
+            cust.id.clone(),
+            vec![InvoiceLineInputDto {
+                item_id: Some(it1.id.clone()),
+                description: "Precision Engineered Valve".into(),
+                quantity: "2".into(),
+                unit_price: "150.00".into(),
+                tax_rate: "0.19".into(),
+            }],
+            Some("Net 30 Payment Terms".into()),
+        ).expect("create invoice");
+
+        let factur_xml = engine.generate_factur_x_xml(invoice.id.clone()).expect("generate factur-x xml");
+        assert!(factur_xml.contains("<rsm:CrossIndustryInvoice"));
+        assert!(factur_xml.contains("INV-2026-EUR-01"));
+
+        let val_report = engine.validate_einvoice_en16931(factur_xml.clone()).expect("validate einvoice");
+        assert!(val_report.is_valid);
+        assert_eq!(val_report.errors.len(), 0);
+
+        let hybrid_pdf = engine.generate_hybrid_pdf_a3_invoice(invoice.id.clone()).expect("hybrid pdf");
+        assert!(hybrid_pdf.starts_with(b"%PDF-1.4"));
+        assert!(hybrid_pdf.len() > 500);
+
+        let incoming_parsed = engine.parse_incoming_einvoice_xml(factur_xml.clone()).expect("parse incoming");
+        assert_eq!(incoming_parsed.invoice_number, "INV-2026-EUR-01");
+
+        let einvoice_po = engine.convert_einvoice_to_draft_po(factur_xml, "Industrial Parts Vendor".into(), loc1.id.clone()).expect("einvoice to po");
+        assert_eq!(einvoice_po.supplier_id, "Industrial Parts Vendor");
+
+        println!(">>> ALL 13 V0.0.4 FEATURES TESTED & VERIFIED OK!");
+    }
 }

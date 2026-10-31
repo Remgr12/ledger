@@ -1,7 +1,10 @@
 pub mod models;
 pub mod service;
 
-pub use models::{Invoice, InvoiceLineItem, InvoiceStatus};
+pub use models::{
+    EInvoiceParty, EInvoiceValidationReport, Invoice, InvoiceLineItem, InvoiceStatus,
+    RecurringSchedule,
+};
 pub use service::InvoicingService;
 
 use erp_kernel::{ErpModule, Migration, ModuleRoute};
@@ -68,6 +71,25 @@ impl ErpModule for InvoicingModule {
             CREATE INDEX IF NOT EXISTS idx_invoices_customer ON invoices(customer_id);
             CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
             CREATE INDEX IF NOT EXISTS idx_lines_invoice ON invoice_lines(invoice_id);
+            "#,
+        },
+        Migration {
+            version: 2,
+            name: "create_recurring_schedules_table",
+            sql: r#"
+            CREATE TABLE IF NOT EXISTS recurring_schedules (
+                id TEXT PRIMARY KEY,
+                customer_id TEXT NOT NULL REFERENCES contacts(id),
+                plan_name TEXT NOT NULL,
+                frequency TEXT NOT NULL,
+                amount TEXT NOT NULL,
+                currency TEXT NOT NULL DEFAULT 'EUR',
+                next_run_date TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                auto_send INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_recurring_cust ON recurring_schedules(customer_id);
             "#,
         }]
     }
@@ -148,5 +170,55 @@ mod tests {
         let finalized =
             InvoicingService::finalize_invoice(&ctx, &inv.id, "accountant").expect("finalize");
         assert_eq!(finalized.status, InvoiceStatus::Finalized);
+
+        // 1. Recurring schedules (LEDGER-19)
+        let sched = InvoicingService::create_recurring_schedule(
+            &ctx.db.conn(),
+            &customer.id,
+            "SaaS Pro Maintenance",
+            "Monthly",
+            Decimal::from(199),
+            "EUR",
+            "2026-11-01",
+            true,
+        )
+        .unwrap();
+        assert_eq!(sched.plan_name, "SaaS Pro Maintenance");
+        let all_scheds = InvoicingService::list_recurring_schedules(&ctx.db.conn()).unwrap();
+        assert_eq!(all_scheds.len(), 1);
+
+        let triggered = InvoicingService::trigger_recurring_invoices(&ctx).unwrap();
+        assert_eq!(triggered.len(), 1);
+
+        // 2. Factur-X / ZUGFeRD 2.2 XML Generation & EN 16931 Validation (LEDGER-28)
+        let seller = crate::models::EInvoiceParty {
+            name: "Ledger ERP Solutions GmbH".into(),
+            vat_id: "DE999888777".into(),
+            street: "Musterstrasse 42".into(),
+            city: "Berlin".into(),
+            postal_code: "10115".into(),
+            country_code: "DE".into(),
+            iban: Some("DE89370400440532013000".into()),
+            bic: Some("COBADEFFXXX".into()),
+        };
+        let buyer = crate::models::EInvoiceParty {
+            name: customer.name.clone(),
+            vat_id: customer.tax_id.clone().unwrap_or("US12345678".into()),
+            street: "123 Industrial Pkwy".into(),
+            city: "Austin".into(),
+            postal_code: "78701".into(),
+            country_code: "US".into(),
+            iban: None,
+            bic: None,
+        };
+
+        let xml = InvoicingService::generate_factur_x_xml(&finalized, &seller, &buyer);
+        assert!(xml.contains("<rsm:CrossIndustryInvoice"));
+        assert!(xml.contains("urn:factur-x.eu:1p0:comfort"));
+        assert!(xml.contains("DE999888777"));
+
+        let report = InvoicingService::validate_en16931(&xml);
+        assert!(report.is_valid);
+        assert!(report.rule_checks_passed >= 6);
     }
 }

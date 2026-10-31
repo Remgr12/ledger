@@ -145,3 +145,39 @@ pub struct FinancialStatement {
     pub total_credit: Decimal,
     pub net_income_or_equity: Decimal,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExchangeRate {
+    pub id: String,
+    pub from_currency: String,
+    pub to_currency: String,
+    pub rate: Decimal,
+    pub effective_date: String,
+    pub source: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RetainerAccount {
+    pub id: String,
+    pub customer_id: String,
+    pub balance: Decimal,
+    pub currency: String,
+    pub liability_account_id: String,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PosShift {
+    pub id: String,
+    pub cashier_id: String,
+    pub opened_at: String,
+    pub closed_at: Option<String>,
+    pub opening_float: Decimal,
+    pub cash_sales: Decimal,
+    pub card_sales: Decimal,
+    pub qr_sales: Decimal,
+    pub closing_cash_actual: Option<Decimal>,
+    pub discrepancy: Option<Decimal>,
+    pub status: String, // "Open" or "Closed"
+}

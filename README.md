@@ -208,6 +208,20 @@ Open the **Settings** view in Ledger ERP, provide the file path, and click **Ins
 
 ## 🏷️ Release History
 
+* **v0.0.4**:
+  * **LEDGER-16**: Batch barcode/label printing and multi-up sheet PDF layouts (Avery 5160 30-up Letter, Avery 24-up A4, and thermal printer streaming).
+  * **LEDGER-17**: Hardware BLE barcode scanner & digital weight scale integration (SPP/HID over GATT, live tare/gross streaming, piece counting).
+  * **LEDGER-18**: Multi-currency accounting & offline FX rate tables (dual-currency GL entries, automated realized FX gain/loss journal adjustments).
+  * **LEDGER-19**: Recurring subscription invoicing & client retainer deposit tracking (automated billing schedules, deferred revenue drawdown against timesheets).
+  * **LEDGER-20**: Advanced inventory Pareto ABC analysis, aging dead-stock heatmaps, and dynamic Wilson EOQ & safety stock calculation.
+  * **LEDGER-21**: Database encryption at rest (transparent ChaCha20 / SQLCipher) & authenticated P2P LAN sync via Pre-Shared Key (PSK) and QR code pairing (`erp://pair?...`).
+  * **LEDGER-22**: On-device offline OCR receipt and vendor invoice intake (heuristic parser with bounding-box extraction, auto-draft purchase orders).
+  * **LEDGER-23**: Individual serialized asset tracking, post-sale warranty validation, calibration tracking, and RMA claim workflows (`erp://serial/<sn>`).
+  * **LEDGER-24**: Offline POS cashier mode with touch-friendly register, cash drawer solenoid kick (`ESC p 0 25 250`), receipt printing, and X/Z shift reconciliation.
+  * **LEDGER-25**: Multi-warehouse stock transfer orders, in-transit virtual holding locations, and dispatch/arrival mobile barcode scanning with variance tracking.
+  * **LEDGER-26**: Workstation capacity planning, machine operational calendar hours, and interactive Gantt / timeline production scheduling in Manufacturing.
+  * **LEDGER-27**: Automated local network NAS/SMB/SFTP backup scheduler with WAL checkpointing (`PRAGMA wal_checkpoint(TRUNCATE)`), zstandard compression, and 1-click external USB drive sync.
+  * **LEDGER-28**: European B2B e-invoicing compliance with hybrid PDF/A-3 Factur-X / ZUGFeRD 2.2 XML embedding (`factur-x.xml`) and offline EN 16931 Schematron validation.
 * **v0.0.3**:
   * **LEDGER-11**: Offline pure vector PDF-1.4 generation for Invoices and Purchase Orders with European EPC QR GiroCode (SEPA QR) and fixed-point Decimal arithmetic.
   * **LEDGER-12**: Peer-to-peer local network database synchronization over LAN/mDNS using Hybrid Logical Clock (HLC) and CRDT event log convergence.
@@ -226,21 +240,11 @@ Open the **Settings** view in Ledger ERP, provide the file path, and click **Ins
 
 ---
 
-## 🗺️ Roadmap & Upcoming Features (v0.0.4)
+## 🗺️ Roadmap & Upcoming Features (v0.0.5)
 
-Tracked in Vikunja project `ledger`:
-* **LEDGER-16**: Batch barcode/label printing and multi-up sheet PDF layouts (Avery 5160 grids, batch queueing, printer error recovery).
-* **LEDGER-17**: Hardware BLE barcode scanners & digital weight scale integration (SPP/HID over GATT, live tare/gross streaming, piece counting).
-* **LEDGER-18**: Multi-currency accounting & offline FX rate tables (dual-currency GL entries, FX gain/loss journal automation).
-* **LEDGER-19**: Recurring subscription invoicing & client retainer deposit tracking (automated billing schedules, deferred revenue drawdown).
-* **LEDGER-20**: Advanced inventory Pareto ABC analysis, aging heatmaps & dynamic safety stock (EOQ reordering, warehouse floor plan heatmap).
-* **LEDGER-21**: Database encryption at rest (SQLCipher / ChaCha20) & authenticated P2P sync via TLS/PSK and QR peer pairing.
-* **LEDGER-22**: On-device offline OCR receipt and vendor invoice intake (Tesseract / ONNX bounding-box verification, auto-draft purchase invoices).
-* **LEDGER-23**: Individual serial number tracking, post-sale warranty validation, calibration intervals, and equipment maintenance history logs.
-* **LEDGER-24**: Offline POS cashier mode with touch-friendly sales screen, cash drawer kick pulse (`ESC p`), receipt printing, and X/Z shift reconciliation.
-* **LEDGER-25**: Multi-warehouse stock transfer orders, in-transit virtual holding locations, and dispatch/receiving mobile barcode workflows.
-* **LEDGER-26**: Workstation capacity planning, machine operational hours, and interactive Gantt / timeline production scheduling in Manufacturing.
-* **LEDGER-27**: Automated local network NAS/SMB/SFTP encrypted snapshot backup scheduler and 1-click external USB drive synchronization.
-* **LEDGER-28**: European B2B e-invoicing compliance with hybrid PDF/A-3 Factur-X / ZUGFeRD 2.2 and UBL 2.1 machine-readable XML embedding.
+* Mobile biometric authentication integration (FaceID / Fingerprint) via platform Keystores.
+* Mesh relay synchronization for air-gapped field vans and offline pop-up workshops.
+* AI-assisted supplier price fluctuation detection and procurement forecasting.
+* Direct CAD / STEP file component visualization in BOM genealogy trees.
 
 

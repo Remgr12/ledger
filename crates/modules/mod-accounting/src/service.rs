@@ -39,6 +39,7 @@ impl AccountingService {
             // Liabilities
             ("2000", "Liabilities", AccountRootType::Liability, None, true),
             ("2100", "Accounts Payable (Creditors)", AccountRootType::Liability, Some("2000"), false),
+            ("2150", "Customer Retainer Deposits (Deferred Revenue)", AccountRootType::Liability, Some("2000"), false),
             ("2200", "Sales Tax / VAT Payable", AccountRootType::Liability, Some("2000"), false),
 
             // Equity
@@ -50,6 +51,7 @@ impl AccountingService {
             ("4000", "Income", AccountRootType::Income, None, true),
             ("4100", "Sales Revenue", AccountRootType::Income, Some("4000"), false),
             ("4200", "Service & Consulting Revenue", AccountRootType::Income, Some("4000"), false),
+            ("4900", "Realized Foreign Exchange Gain", AccountRootType::Income, Some("4000"), false),
 
             // Expenses
             ("5000", "Expenses", AccountRootType::Expense, None, true),
@@ -57,6 +59,7 @@ impl AccountingService {
             ("5200", "Office Supplies & Hardware", AccountRootType::Expense, Some("5000"), false),
             ("5300", "Software & Cloud Services", AccountRootType::Expense, Some("5000"), false),
             ("5400", "Professional & Legal Fees", AccountRootType::Expense, Some("5000"), false),
+            ("5900", "Realized Foreign Exchange Loss", AccountRootType::Expense, Some("5000"), false),
         ];
 
         let mut stmt = conn.prepare(
@@ -188,6 +191,35 @@ impl AccountingService {
         voucher_id: &str,
         remarks: Option<&str>,
     ) -> Result<Vec<GlEntry>, AccountingError> {
+        let entries = Self::post_journal_entry_conn(
+            &ctx.db.conn(),
+            posting_date,
+            lines,
+            voucher_type,
+            voucher_id,
+            remarks,
+        )?;
+
+        let entry_number = entries.first().map(|e| e.entry_number.clone()).unwrap_or_default();
+        let _ = ctx.record_and_publish_event(
+            "GlEntriesPosted",
+            "GeneralLedger",
+            &entry_number,
+            serde_json::to_value(&entries).unwrap_or(serde_json::Value::Null),
+            "system",
+        )?;
+
+        Ok(entries)
+    }
+
+    pub fn post_journal_entry_conn(
+        conn: &Connection,
+        posting_date: &str,
+        lines: Vec<JournalEntryLine>,
+        voucher_type: &str,
+        voucher_id: &str,
+        remarks: Option<&str>,
+    ) -> Result<Vec<GlEntry>, AccountingError> {
         if lines.len() < 2 {
             return Err(AccountingError::InvalidTransaction(
                 "A journal entry requires at least two lines (one debit, one credit)".into(),
@@ -222,22 +254,28 @@ impl AccountingService {
             });
         }
 
-        let mut conn = ctx.db.conn();
-        let tx = conn.transaction()?;
-
         let now = Utc::now();
         let entry_number = format!("GL-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
         let mut created_entries = Vec::new();
 
+        conn.execute("BEGIN TRANSACTION;", [])?;
+
         for line in lines {
-            let acc = Self::get_account_by_id(&tx, &line.account_id)?;
+            let acc = match Self::get_account_by_id(conn, &line.account_id) {
+                Ok(a) => a,
+                Err(e) => {
+                    let _ = conn.execute("ROLLBACK;", []);
+                    return Err(e);
+                }
+            };
             if acc.is_group {
+                let _ = conn.execute("ROLLBACK;", []);
                 return Err(AccountingError::CannotPostToGroupAccount(acc.name));
             }
 
             let entry_id = Uuid::new_v4().to_string();
 
-            tx.execute(
+            if let Err(e) = conn.execute(
                 r#"
                 INSERT INTO gl_entries (
                     id, entry_number, posting_date, account_id, party_type, party_id,
@@ -259,7 +297,10 @@ impl AccountingService {
                     line.remarks.as_deref().or(remarks),
                     now.to_rfc3339()
                 ],
-            )?;
+            ) {
+                let _ = conn.execute("ROLLBACK;", []);
+                return Err(AccountingError::Database(e));
+            }
 
             // Update materialized account balance
             let net_change = if acc.root_type.is_debit_normal() {
@@ -269,10 +310,13 @@ impl AccountingService {
             };
 
             let new_balance = acc.balance + net_change;
-            tx.execute(
+            if let Err(e) = conn.execute(
                 "UPDATE accounts SET balance = ?1 WHERE id = ?2",
                 params![new_balance.to_string(), line.account_id],
-            )?;
+            ) {
+                let _ = conn.execute("ROLLBACK;", []);
+                return Err(AccountingError::Database(e));
+            }
 
             created_entries.push(GlEntry {
                 id: entry_id,
@@ -291,16 +335,7 @@ impl AccountingService {
             });
         }
 
-        tx.commit()?;
-        drop(conn);
-
-        let _ = ctx.record_and_publish_event(
-            "GlEntriesPosted",
-            "GeneralLedger",
-            &entry_number,
-            serde_json::to_value(&created_entries).unwrap_or(serde_json::Value::Null),
-            "system",
-        )?;
+        conn.execute("COMMIT;", [])?;
 
         Ok(created_entries)
     }
@@ -575,6 +610,453 @@ impl AccountingService {
             balance,
             is_active: is_active_int != 0,
             created_at,
+        })
+    }
+
+    // --- Multi-Currency & FX Rate Methods (LEDGER-18) ---
+
+    pub fn set_exchange_rate(
+        conn: &Connection,
+        from_currency: &str,
+        to_currency: &str,
+        rate: Decimal,
+        effective_date: &str,
+        source: &str,
+    ) -> Result<crate::models::ExchangeRate, AccountingError> {
+        let id = format!("fx-{}", uuid::Uuid::new_v4().to_string().chars().take(8).collect::<String>());
+        let now = Utc::now();
+        conn.execute(
+            r#"
+            INSERT INTO exchange_rates (id, from_currency, to_currency, rate, effective_date, source, created_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            "#,
+            params![id, from_currency, to_currency, rate.to_string(), effective_date, source, now.to_rfc3339()],
+        )?;
+
+        Ok(crate::models::ExchangeRate {
+            id,
+            from_currency: from_currency.to_string(),
+            to_currency: to_currency.to_string(),
+            rate,
+            effective_date: effective_date.to_string(),
+            source: source.to_string(),
+            created_at: now,
+        })
+    }
+
+    pub fn get_exchange_rate(conn: &Connection, from_currency: &str, to_currency: &str) -> Result<Decimal, AccountingError> {
+        if from_currency.eq_ignore_ascii_case(to_currency) {
+            return Ok(Decimal::ONE);
+        }
+        let rate_str: Option<String> = conn
+            .query_row(
+                "SELECT rate FROM exchange_rates WHERE from_currency = ?1 AND to_currency = ?2 ORDER BY effective_date DESC LIMIT 1",
+                params![from_currency, to_currency],
+                |r| r.get(0),
+            )
+            .ok();
+
+        if let Some(s) = rate_str {
+            if let Ok(d) = Decimal::from_str(&s) {
+                return Ok(d);
+            }
+        }
+        // Fallback default conversion rates for common pairs
+        match (from_currency.to_uppercase().as_str(), to_currency.to_uppercase().as_str()) {
+            ("EUR", "USD") => Ok(Decimal::from_str("1.08").unwrap()),
+            ("USD", "EUR") => Ok(Decimal::from_str("0.9259").unwrap()),
+            ("GBP", "EUR") => Ok(Decimal::from_str("1.18").unwrap()),
+            ("EUR", "GBP") => Ok(Decimal::from_str("0.8475").unwrap()),
+            _ => Ok(Decimal::ONE),
+        }
+    }
+
+    pub fn list_exchange_rates(conn: &Connection) -> Result<Vec<crate::models::ExchangeRate>, AccountingError> {
+        let mut stmt = conn.prepare(
+            "SELECT id, from_currency, to_currency, rate, effective_date, source, created_at FROM exchange_rates ORDER BY effective_date DESC",
+        )?;
+        let rows = stmt.query_map([], |r| {
+            let id: String = r.get(0)?;
+            let from_curr: String = r.get(1)?;
+            let to_curr: String = r.get(2)?;
+            let rate_str: String = r.get(3)?;
+            let date_str: String = r.get(4)?;
+            let source: String = r.get(5)?;
+            let created_at_str: String = r.get(6)?;
+
+            let rate = Decimal::from_str(&rate_str).unwrap_or(Decimal::ONE);
+            let created_at = chrono::DateTime::parse_from_rfc3339(&created_at_str)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now());
+
+            Ok(crate::models::ExchangeRate {
+                id,
+                from_currency: from_curr,
+                to_currency: to_curr,
+                rate,
+                effective_date: date_str,
+                source,
+                created_at,
+            })
+        })?;
+
+        let mut list = Vec::new();
+        for r in rows {
+            list.push(r?);
+        }
+        Ok(list)
+    }
+
+    // --- Client Retainer Accounts (LEDGER-19) ---
+
+    pub fn get_or_create_retainer_account(conn: &Connection, customer_id: &str, currency: &str) -> Result<crate::models::RetainerAccount, AccountingError> {
+        let row: Option<(String, String, String, String, String)> = conn
+            .query_row(
+                "SELECT id, customer_id, balance, currency, liability_account_id FROM retainer_accounts WHERE customer_id = ?1",
+                params![customer_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+            )
+            .ok();
+
+        if let Some((id, cid, bal_str, curr, liab_id)) = row {
+            return Ok(crate::models::RetainerAccount {
+                id,
+                customer_id: cid,
+                balance: Decimal::from_str(&bal_str).unwrap_or(Decimal::ZERO),
+                currency: curr,
+                liability_account_id: liab_id,
+                updated_at: Utc::now(),
+            });
+        }
+
+        let id = format!("ret-{}", uuid::Uuid::new_v4().to_string().chars().take(8).collect::<String>());
+        let liab_acc = Self::get_account_by_code(conn, "2150")?;
+        let now = Utc::now().to_rfc3339();
+        conn.execute(
+            r#"
+            INSERT INTO retainer_accounts (id, customer_id, balance, currency, liability_account_id, updated_at)
+            VALUES (?1, ?2, '0', ?3, ?4, ?5)
+            "#,
+            params![id, customer_id, currency, liab_acc.id, now],
+        )?;
+
+        Ok(crate::models::RetainerAccount {
+            id,
+            customer_id: customer_id.to_string(),
+            balance: Decimal::ZERO,
+            currency: currency.to_string(),
+            liability_account_id: liab_acc.id,
+            updated_at: Utc::now(),
+        })
+    }
+
+    pub fn deposit_retainer(
+        conn: &Connection,
+        customer_id: &str,
+        amount: Decimal,
+        currency: &str,
+    ) -> Result<crate::models::RetainerAccount, AccountingError> {
+        let mut ret = Self::get_or_create_retainer_account(conn, customer_id, currency)?;
+        ret.balance += amount;
+
+        conn.execute(
+            "UPDATE retainer_accounts SET balance = ?1, updated_at = ?2 WHERE id = ?3",
+            params![ret.balance.to_string(), Utc::now().to_rfc3339(), ret.id],
+        )?;
+
+        // Book GL: DR 1120 Bank, CR 2150 Retainer Liability
+        let bank_acc = Self::get_account_by_code(conn, "1120")?;
+        let liab_acc = Self::get_account_by_code(conn, "2150")?;
+
+        let lines = vec![
+            JournalEntryLine {
+                account_id: bank_acc.id,
+                debit: amount,
+                credit: Decimal::ZERO,
+                party_type: Some("Customer".to_string()),
+                party_id: Some(customer_id.to_string()),
+                remarks: Some("Customer retainer deposit received".to_string()),
+            },
+            JournalEntryLine {
+                account_id: liab_acc.id,
+                debit: Decimal::ZERO,
+                credit: amount,
+                party_type: Some("Customer".to_string()),
+                party_id: Some(customer_id.to_string()),
+                remarks: Some("Retainer deferred revenue liability".to_string()),
+            },
+        ];
+
+        Self::post_journal_entry_conn(
+            conn,
+            &Utc::now().format("%Y-%m-%d").to_string(),
+            lines,
+            "RetainerDeposit",
+            &ret.id,
+            Some(&format!("Retainer deposit for customer {}", customer_id)),
+        )?;
+
+        Ok(ret)
+    }
+
+    pub fn drawdown_retainer(
+        conn: &Connection,
+        customer_id: &str,
+        amount: Decimal,
+        invoice_id: Option<&str>,
+    ) -> Result<crate::models::RetainerAccount, AccountingError> {
+        let mut ret = Self::get_or_create_retainer_account(conn, customer_id, "EUR")?;
+        if ret.balance < amount {
+            return Err(AccountingError::InvalidTransaction(format!(
+                "Insufficient retainer balance (Available: {}, Requested drawdown: {})",
+                ret.balance, amount
+            )));
+        }
+
+        ret.balance -= amount;
+        conn.execute(
+            "UPDATE retainer_accounts SET balance = ?1, updated_at = ?2 WHERE id = ?3",
+            params![ret.balance.to_string(), Utc::now().to_rfc3339(), ret.id],
+        )?;
+
+        // Book GL: DR 2150 Retainer Liability, CR 4100 Revenue
+        let liab_acc = Self::get_account_by_code(conn, "2150")?;
+        let rev_acc = Self::get_account_by_code(conn, "4100")?;
+
+        let ref_id = invoice_id.unwrap_or(&ret.id);
+        let lines = vec![
+            JournalEntryLine {
+                account_id: liab_acc.id,
+                debit: amount,
+                credit: Decimal::ZERO,
+                party_type: Some("Customer".to_string()),
+                party_id: Some(customer_id.to_string()),
+                remarks: Some(format!("Drawdown against retainer for {}", ref_id)),
+            },
+            JournalEntryLine {
+                account_id: rev_acc.id,
+                debit: Decimal::ZERO,
+                credit: amount,
+                party_type: Some("Customer".to_string()),
+                party_id: Some(customer_id.to_string()),
+                remarks: Some(format!("Retainer revenue recognized for {}", ref_id)),
+            },
+        ];
+
+        Self::post_journal_entry_conn(
+            conn,
+            &Utc::now().format("%Y-%m-%d").to_string(),
+            lines,
+            "RetainerDrawdown",
+            ref_id,
+            Some(&format!("Drawdown retainer for customer {}", customer_id)),
+        )?;
+
+        Ok(ret)
+    }
+
+    // --- POS Shifts & Cashier Mode (LEDGER-24) ---
+
+    pub fn open_pos_shift(conn: &Connection, cashier_id: &str, opening_float: Decimal) -> Result<crate::models::PosShift, AccountingError> {
+        let id = format!("shift-{}", uuid::Uuid::new_v4().to_string().chars().take(8).collect::<String>());
+        let now = Utc::now().to_rfc3339();
+
+        conn.execute(
+            r#"
+            INSERT INTO pos_shifts (
+                id, cashier_id, opened_at, opening_float, cash_sales, card_sales, qr_sales, status
+            ) VALUES (?1, ?2, ?3, ?4, '0', '0', '0', 'Open')
+            "#,
+            params![id, cashier_id, now, opening_float.to_string()],
+        )?;
+
+        Ok(crate::models::PosShift {
+            id,
+            cashier_id: cashier_id.to_string(),
+            opened_at: now,
+            closed_at: None,
+            opening_float,
+            cash_sales: Decimal::ZERO,
+            card_sales: Decimal::ZERO,
+            qr_sales: Decimal::ZERO,
+            closing_cash_actual: None,
+            discrepancy: None,
+            status: "Open".to_string(),
+        })
+    }
+
+    pub fn record_pos_sale(
+        conn: &Connection,
+        shift_id: &str,
+        amount: Decimal,
+        tender_type: &str,
+    ) -> Result<(), AccountingError> {
+        let col = match tender_type.to_lowercase().as_str() {
+            "cash" => "cash_sales",
+            "card" => "card_sales",
+            _ => "qr_sales",
+        };
+
+        let current_val_str: String = conn.query_row(
+            &format!("SELECT {} FROM pos_shifts WHERE id = ?1", col),
+            params![shift_id],
+            |r| r.get(0),
+        )?;
+
+        let current_val = Decimal::from_str(&current_val_str).unwrap_or(Decimal::ZERO);
+        let new_val = current_val + amount;
+
+        conn.execute(
+            &format!("UPDATE pos_shifts SET {} = ?1 WHERE id = ?2", col),
+            params![new_val.to_string(), shift_id],
+        )?;
+
+        Ok(())
+    }
+
+    pub fn close_pos_shift(
+        conn: &Connection,
+        shift_id: &str,
+        closing_cash_actual: Decimal,
+    ) -> Result<crate::models::PosShift, AccountingError> {
+        let row: (String, String, String, String, String, String) = conn.query_row(
+            "SELECT cashier_id, opened_at, opening_float, cash_sales, card_sales, qr_sales FROM pos_shifts WHERE id = ?1",
+            params![shift_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)),
+        )?;
+
+        let cashier_id = row.0;
+        let opened_at = row.1;
+        let opening_float = Decimal::from_str(&row.2).unwrap_or(Decimal::ZERO);
+        let cash_sales = Decimal::from_str(&row.3).unwrap_or(Decimal::ZERO);
+        let card_sales = Decimal::from_str(&row.4).unwrap_or(Decimal::ZERO);
+        let qr_sales = Decimal::from_str(&row.5).unwrap_or(Decimal::ZERO);
+
+        let expected_cash = opening_float + cash_sales;
+        let discrepancy = closing_cash_actual - expected_cash;
+        let closed_at = Utc::now().to_rfc3339();
+
+        conn.execute(
+            r#"
+            UPDATE pos_shifts
+            SET closed_at = ?1, closing_cash_actual = ?2, discrepancy = ?3, status = 'Closed'
+            WHERE id = ?4
+            "#,
+            params![closed_at, closing_cash_actual.to_string(), discrepancy.to_string(), shift_id],
+        )?;
+
+        // Automatically post daily cash summary to GL: DR 1110 Cash on Hand, CR 4100 Sales Revenue
+        let total_sales = cash_sales + card_sales + qr_sales;
+        if total_sales > Decimal::ZERO {
+            let cash_acc = Self::get_account_by_code(conn, "1110")?;
+            let rev_acc = Self::get_account_by_code(conn, "4100")?;
+
+            let lines = vec![
+                JournalEntryLine {
+                    account_id: cash_acc.id,
+                    debit: total_sales,
+                    credit: Decimal::ZERO,
+                    party_type: Some("POS".to_string()),
+                    party_id: Some(cashier_id.clone()),
+                    remarks: Some(format!("Daily POS sales summary for shift {}", shift_id)),
+                },
+                JournalEntryLine {
+                    account_id: rev_acc.id,
+                    debit: Decimal::ZERO,
+                    credit: total_sales,
+                    party_type: Some("POS".to_string()),
+                    party_id: Some(cashier_id.clone()),
+                    remarks: Some(format!("Daily POS sales summary revenue for shift {}", shift_id)),
+                },
+            ];
+
+            let _ = Self::post_journal_entry_conn(
+                conn,
+                &Utc::now().format("%Y-%m-%d").to_string(),
+                lines,
+                "PosDailySummary",
+                shift_id,
+                Some(&format!("POS Shift {} Z-Report Reconciliation", shift_id)),
+            );
+        }
+
+        Ok(crate::models::PosShift {
+            id: shift_id.to_string(),
+            cashier_id,
+            opened_at,
+            closed_at: Some(closed_at),
+            opening_float,
+            cash_sales,
+            card_sales,
+            qr_sales,
+            closing_cash_actual: Some(closing_cash_actual),
+            discrepancy: Some(discrepancy),
+            status: "Closed".to_string(),
+        })
+    }
+
+    pub fn generate_shift_report(conn: &Connection, shift_id: &str, is_z_report: bool) -> Result<String, AccountingError> {
+        let shift: (String, String, Option<String>, String, String, String, String, Option<String>, Option<String>, String) = conn.query_row(
+            "SELECT id, cashier_id, closed_at, opening_float, cash_sales, card_sales, qr_sales, closing_cash_actual, discrepancy, status FROM pos_shifts WHERE id = ?1",
+            params![shift_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?, r.get(7)?, r.get(8)?, r.get(9)?)),
+        )?;
+
+        let report_type = if is_z_report { "FINAL SHIFT Z-REPORT" } else { "MID-SHIFT X-REPORT" };
+        let open_float = Decimal::from_str(&shift.3).unwrap_or(Decimal::ZERO);
+        let cash_sales = Decimal::from_str(&shift.4).unwrap_or(Decimal::ZERO);
+        let card_sales = Decimal::from_str(&shift.5).unwrap_or(Decimal::ZERO);
+        let qr_sales = Decimal::from_str(&shift.6).unwrap_or(Decimal::ZERO);
+        let total_sales = cash_sales + card_sales + qr_sales;
+
+        let mut out = String::new();
+        out.push_str("========================================\n");
+        out.push_str(&format!("          LEDGER ERP POS\n"));
+        out.push_str(&format!("       {}\n", report_type));
+        out.push_str("========================================\n");
+        out.push_str(&format!("Shift ID    : {}\n", shift.0));
+        out.push_str(&format!("Cashier     : {}\n", shift.1));
+        out.push_str(&format!("Status      : {}\n", shift.9));
+        out.push_str("----------------------------------------\n");
+        out.push_str(&format!("Opening Float   : {:>10.2}\n", open_float));
+        out.push_str(&format!("Cash Sales      : {:>10.2}\n", cash_sales));
+        out.push_str(&format!("Card Sales      : {:>10.2}\n", card_sales));
+        out.push_str(&format!("EPC QR Sales    : {:>10.2}\n", qr_sales));
+        out.push_str("----------------------------------------\n");
+        out.push_str(&format!("TOTAL REVENUE   : {:>10.2}\n", total_sales));
+        out.push_str(&format!("Expected In Cash: {:>10.2}\n", open_float + cash_sales));
+        if let Some(actual) = shift.7 {
+            out.push_str(&format!("Actual Cash     : {:>10.2}\n", Decimal::from_str(&actual).unwrap_or(Decimal::ZERO)));
+        }
+        if let Some(disc) = shift.8 {
+            out.push_str(&format!("Discrepancy     : {:>10.2}\n", Decimal::from_str(&disc).unwrap_or(Decimal::ZERO)));
+        }
+        out.push_str("========================================\n");
+
+        Ok(out)
+    }
+
+    pub fn get_pos_shift(conn: &Connection, shift_id: &str) -> Result<crate::models::PosShift, AccountingError> {
+        let (id, cashier_id, opened_at, closed_at, opening_float_str, cash_sales_str, card_sales_str, qr_sales_str, closing_cash_str, discrepancy_str, status): (
+            String, String, String, Option<String>, String, String, String, String, Option<String>, Option<String>, String
+        ) = conn.query_row(
+            "SELECT id, cashier_id, opened_at, closed_at, opening_float, cash_sales, card_sales, qr_sales, closing_cash_actual, discrepancy, status FROM pos_shifts WHERE id = ?1",
+            params![shift_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?, r.get(7)?, r.get(8)?, r.get(9)?, r.get(10)?)),
+        )?;
+
+        Ok(crate::models::PosShift {
+            id,
+            cashier_id,
+            opened_at,
+            closed_at,
+            opening_float: Decimal::from_str(&opening_float_str).unwrap_or(Decimal::ZERO),
+            cash_sales: Decimal::from_str(&cash_sales_str).unwrap_or(Decimal::ZERO),
+            card_sales: Decimal::from_str(&card_sales_str).unwrap_or(Decimal::ZERO),
+            qr_sales: Decimal::from_str(&qr_sales_str).unwrap_or(Decimal::ZERO),
+            closing_cash_actual: closing_cash_str.and_then(|s| Decimal::from_str(&s).ok()),
+            discrepancy: discrepancy_str.and_then(|s| Decimal::from_str(&s).ok()),
+            status,
         })
     }
 }

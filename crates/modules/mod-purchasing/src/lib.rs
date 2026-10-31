@@ -5,7 +5,8 @@ pub mod service;
 
 pub use errors::PurchasingError;
 pub use models::{
-    PurchaseOrder, PurchaseOrderLine, PurchaseOrderStatus, PurchaseReceipt, PurchaseReceiptLine,
+    IncomingEInvoice, OcrBoundingBox, OcrReceiptLine, OcrReceiptResult, PurchaseOrder,
+    PurchaseOrderLine, PurchaseOrderStatus, PurchaseReceipt, PurchaseReceiptLine,
 };
 pub use module::PurchasingModule;
 pub use service::PurchasingService;
@@ -144,5 +145,52 @@ mod tests {
         assert_eq!(located[0].location_code, "BIN-P1");
         assert_eq!(located[0].quantity, Decimal::from(20));
         assert_eq!(located[0].lot_number.as_deref(), Some("LOT-FAST-26"));
+    }
+
+    #[test]
+    fn test_ocr_and_einvoice_intake() {
+        let (_, ctx, _) = setup_test_ctx();
+
+        // 1. OCR Intake (LEDGER-22)
+        let sample_ocr_text = "Vendor: Hoffman Tools GmbH\nDate: 2026-10-31\nItem A - 100\nTotal: 120.00 EUR";
+        let ocr_res = PurchasingService::parse_ocr_receipt("scan_receipt_101.png", sample_ocr_text);
+        assert_eq!(ocr_res.vendor_name, "Hoffman Tools GmbH");
+        assert_eq!(ocr_res.total_amount, Decimal::from(120));
+        assert!(!ocr_res.bounding_boxes.is_empty());
+
+        let po_from_ocr = PurchasingService::convert_ocr_to_draft_po(&ctx, &ocr_res).unwrap();
+        assert_eq!(po_from_ocr.supplier_id, "Hoffman Tools GmbH");
+        assert_eq!(po_from_ocr.status, PurchaseOrderStatus::Draft);
+
+        // 2. Electronic Invoice Intake (LEDGER-28)
+        let sample_xml = r#"
+        <rsm:CrossIndustryInvoice xmlns:ram="urn:ram" xmlns:rsm="urn:rsm">
+            <rsm:ExchangedDocument>
+                <ram:ID>INV-FACTURX-9988</ram:ID>
+                <ram:IssueDateTime><udt:DateTimeString>2026-10-31</udt:DateTimeString></ram:IssueDateTime>
+            </rsm:ExchangedDocument>
+            <rsm:SupplyChainTradeTransaction>
+                <ram:ApplicableHeaderTradeAgreement>
+                    <ram:SellerTradeParty><ram:Name>Euro Supply Co</ram:Name></ram:SellerTradeParty>
+                </ram:ApplicableHeaderTradeAgreement>
+                <ram:ApplicableHeaderTradeSettlement>
+                    <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+                        <ram:LineTotalAmount>400.00</ram:LineTotalAmount>
+                        <ram:TaxTotalAmount>80.00</ram:TaxTotalAmount>
+                        <ram:GrandTotalAmount>480.00</ram:GrandTotalAmount>
+                    </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+                </ram:ApplicableHeaderTradeSettlement>
+            </rsm:SupplyChainTradeTransaction>
+        </rsm:CrossIndustryInvoice>
+        "#;
+
+        let parsed_einvoice = PurchasingService::parse_incoming_einvoice_xml(sample_xml).unwrap();
+        assert_eq!(parsed_einvoice.invoice_number, "INV-FACTURX-9988");
+        assert_eq!(parsed_einvoice.supplier_name, "Euro Supply Co");
+        assert_eq!(parsed_einvoice.grand_total, Decimal::from(480));
+
+        let po_from_xml = PurchasingService::convert_einvoice_to_draft_po(&ctx, &parsed_einvoice).unwrap();
+        assert_eq!(po_from_xml.supplier_id, "Euro Supply Co");
+        assert_eq!(po_from_xml.status, PurchaseOrderStatus::Draft);
     }
 }

@@ -103,3 +103,53 @@ pub struct WorkOrder {
     pub created_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Workstation {
+    pub id: String,
+    pub code: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub hourly_rate: Decimal,
+    pub daily_capacity_hours: f64,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RoutingOperation {
+    pub id: String,
+    pub bom_id: String,
+    pub workstation_id: String,
+    pub workstation_name: String,
+    pub operation_name: String,
+    pub sequence_order: u32,
+    pub setup_time_mins: u32,
+    pub run_time_mins_per_unit: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkOrderAllocation {
+    pub id: String,
+    pub work_order_id: String,
+    pub work_order_number: String,
+    pub routing_operation_id: String,
+    pub operation_name: String,
+    pub workstation_id: String,
+    pub workstation_name: String,
+    pub scheduled_start: String,
+    pub scheduled_end: String,
+    pub duration_hours: f64,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkstationCapacitySummary {
+    pub workstation_id: String,
+    pub workstation_code: String,
+    pub workstation_name: String,
+    pub daily_capacity_hours: f64,
+    pub scheduled_hours: f64,
+    pub utilization_percentage: f64,
+    pub is_overloaded: bool,
+    pub allocations: Vec<WorkOrderAllocation>,
+}

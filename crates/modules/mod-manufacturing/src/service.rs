@@ -665,4 +665,233 @@ impl ManufacturingService {
             completed_at,
         })
     }
+
+    // --- Workstation Capacity Planning & Scheduling (LEDGER-26) ---
+
+    pub fn create_workstation(
+        conn: &Connection,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        hourly_rate: Decimal,
+        daily_capacity_hours: f64,
+    ) -> Result<crate::models::Workstation, ManufacturingError> {
+        let id = format!("ws-{}", uuid::Uuid::new_v4().to_string().chars().take(8).collect::<String>());
+
+        conn.execute(
+            r#"
+            INSERT INTO workstations (id, code, name, description, hourly_rate, daily_capacity_hours, status)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'Active')
+            "#,
+            params![id, code, name, description, hourly_rate.to_string(), daily_capacity_hours],
+        )?;
+
+        Ok(crate::models::Workstation {
+            id,
+            code: code.to_string(),
+            name: name.to_string(),
+            description: description.map(String::from),
+            hourly_rate,
+            daily_capacity_hours,
+            status: "Active".to_string(),
+        })
+    }
+
+    pub fn list_workstations(conn: &Connection) -> Result<Vec<crate::models::Workstation>, ManufacturingError> {
+        let mut stmt = conn.prepare(
+            "SELECT id, code, name, description, hourly_rate, daily_capacity_hours, status FROM workstations ORDER BY code ASC"
+        )?;
+
+        let rows = stmt.query_map([], |r| {
+            let id: String = r.get(0)?;
+            let code: String = r.get(1)?;
+            let name: String = r.get(2)?;
+            let desc: Option<String> = r.get(3)?;
+            let rate_str: String = r.get(4)?;
+            let cap: f64 = r.get(5)?;
+            let status: String = r.get(6)?;
+
+            Ok(crate::models::Workstation {
+                id,
+                code,
+                name,
+                description: desc,
+                hourly_rate: Decimal::from_str(&rate_str).unwrap_or(Decimal::ZERO),
+                daily_capacity_hours: cap,
+                status,
+            })
+        })?;
+
+        let mut list = Vec::new();
+        for r in rows {
+            list.push(r?);
+        }
+        Ok(list)
+    }
+
+    pub fn add_routing_operation(
+        conn: &Connection,
+        bom_id: &str,
+        workstation_id: &str,
+        operation_name: &str,
+        sequence_order: u32,
+        setup_time_mins: u32,
+        run_time_mins_per_unit: u32,
+    ) -> Result<crate::models::RoutingOperation, ManufacturingError> {
+        let id = format!("ro-{}", uuid::Uuid::new_v4().to_string().chars().take(8).collect::<String>());
+        let ws_name: String = conn.query_row("SELECT name FROM workstations WHERE id = ?1", params![workstation_id], |r| r.get(0)).unwrap_or_default();
+
+        conn.execute(
+            r#"
+            INSERT INTO routing_operations (
+                id, bom_id, workstation_id, operation_name, sequence_order, setup_time_mins, run_time_mins_per_unit
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            "#,
+            params![id, bom_id, workstation_id, operation_name, sequence_order, setup_time_mins, run_time_mins_per_unit],
+        )?;
+
+        Ok(crate::models::RoutingOperation {
+            id,
+            bom_id: bom_id.to_string(),
+            workstation_id: workstation_id.to_string(),
+            workstation_name: ws_name,
+            operation_name: operation_name.to_string(),
+            sequence_order,
+            setup_time_mins,
+            run_time_mins_per_unit,
+        })
+    }
+
+    pub fn list_routing_operations(conn: &Connection, bom_id: &str) -> Result<Vec<crate::models::RoutingOperation>, ManufacturingError> {
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT ro.id, ro.bom_id, ro.workstation_id, ws.name, ro.operation_name,
+                   ro.sequence_order, ro.setup_time_mins, ro.run_time_mins_per_unit
+            FROM routing_operations ro
+            INNER JOIN workstations ws ON ro.workstation_id = ws.id
+            WHERE ro.bom_id = ?1
+            ORDER BY ro.sequence_order ASC
+            "#
+        )?;
+
+        let rows = stmt.query_map(params![bom_id], |r| {
+            Ok(crate::models::RoutingOperation {
+                id: r.get(0)?,
+                bom_id: r.get(1)?,
+                workstation_id: r.get(2)?,
+                workstation_name: r.get(3)?,
+                operation_name: r.get(4)?,
+                sequence_order: r.get(5)?,
+                setup_time_mins: r.get(6)?,
+                run_time_mins_per_unit: r.get(7)?,
+            })
+        })?;
+
+        let mut list = Vec::new();
+        for r in rows {
+            list.push(r?);
+        }
+        Ok(list)
+    }
+
+    pub fn schedule_work_order(
+        conn: &Connection,
+        work_order_id: &str,
+        routing_op_id: &str,
+        workstation_id: &str,
+        scheduled_start: &str,
+        duration_hours: f64,
+    ) -> Result<crate::models::WorkOrderAllocation, ManufacturingError> {
+        let id = format!("woa-{}", uuid::Uuid::new_v4().to_string().chars().take(8).collect::<String>());
+        let wo_num: String = conn.query_row("SELECT work_order_number FROM work_orders WHERE id = ?1", params![work_order_id], |r| r.get(0)).unwrap_or_default();
+        let op_name: String = conn.query_row("SELECT operation_name FROM routing_operations WHERE id = ?1", params![routing_op_id], |r| r.get(0)).unwrap_or_default();
+        let ws_name: String = conn.query_row("SELECT name FROM workstations WHERE id = ?1", params![workstation_id], |r| r.get(0)).unwrap_or_default();
+
+        let scheduled_end = format!("{}+{}h", scheduled_start, duration_hours);
+
+        conn.execute(
+            r#"
+            INSERT INTO work_order_allocations (
+                id, work_order_id, routing_operation_id, workstation_id, scheduled_start, scheduled_end, duration_hours, status
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'Scheduled')
+            "#,
+            params![id, work_order_id, routing_op_id, workstation_id, scheduled_start, scheduled_end, duration_hours],
+        )?;
+
+        Ok(crate::models::WorkOrderAllocation {
+            id,
+            work_order_id: work_order_id.to_string(),
+            work_order_number: wo_num,
+            routing_operation_id: routing_op_id.to_string(),
+            operation_name: op_name,
+            workstation_id: workstation_id.to_string(),
+            workstation_name: ws_name,
+            scheduled_start: scheduled_start.to_string(),
+            scheduled_end,
+            duration_hours,
+            status: "Scheduled".to_string(),
+        })
+    }
+
+    pub fn get_workstation_capacity_schedule(conn: &Connection) -> Result<Vec<crate::models::WorkstationCapacitySummary>, ManufacturingError> {
+        let stations = Self::list_workstations(conn)?;
+        let mut summaries = Vec::new();
+
+        for ws in stations {
+            let mut stmt = conn.prepare(
+                r#"
+                SELECT a.id, a.work_order_id, wo.work_order_number, a.routing_operation_id,
+                       ro.operation_name, a.workstation_id, ws.name, a.scheduled_start, a.scheduled_end,
+                       a.duration_hours, a.status
+                FROM work_order_allocations a
+                INNER JOIN work_orders wo ON a.work_order_id = wo.id
+                INNER JOIN routing_operations ro ON a.routing_operation_id = ro.id
+                INNER JOIN workstations ws ON a.workstation_id = ws.id
+                WHERE a.workstation_id = ?1
+                ORDER BY a.scheduled_start ASC
+                "#
+            )?;
+
+            let rows = stmt.query_map(params![ws.id], |r| {
+                Ok(crate::models::WorkOrderAllocation {
+                    id: r.get(0)?,
+                    work_order_id: r.get(1)?,
+                    work_order_number: r.get(2)?,
+                    routing_operation_id: r.get(3)?,
+                    operation_name: r.get(4)?,
+                    workstation_id: r.get(5)?,
+                    workstation_name: r.get(6)?,
+                    scheduled_start: r.get(7)?,
+                    scheduled_end: r.get(8)?,
+                    duration_hours: r.get(9)?,
+                    status: r.get(10)?,
+                })
+            })?;
+
+            let mut allocations = Vec::new();
+            let mut scheduled_hours = 0.0;
+            for r in rows {
+                let alloc = r?;
+                scheduled_hours += alloc.duration_hours;
+                allocations.push(alloc);
+            }
+
+            let cap = ws.daily_capacity_hours.max(0.1);
+            let util_pct = (scheduled_hours / cap) * 100.0;
+            let is_overloaded = util_pct > 100.0;
+
+            summaries.push(crate::models::WorkstationCapacitySummary {
+                workstation_id: ws.id,
+                workstation_code: ws.code,
+                workstation_name: ws.name,
+                daily_capacity_hours: cap,
+                scheduled_hours,
+                utilization_percentage: util_pct,
+                is_overloaded,
+                allocations,
+            });
+        }
+
+        Ok(summaries)
+    }
 }

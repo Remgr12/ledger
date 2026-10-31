@@ -22,6 +22,10 @@ impl QrService {
             ParsedQr::Location {
                 id_or_code: rest.trim_end_matches('/').to_string(),
             }
+        } else if let Some(rest) = trimmed.strip_prefix("erp://serial/").or_else(|| trimmed.strip_prefix("erp://sn/")) {
+            ParsedQr::Serial {
+                serial_number: rest.trim_end_matches('/').to_string(),
+            }
         } else if let Some(rest) = trimmed.strip_prefix("erp://item/").or_else(|| trimmed.strip_prefix("erp://sku/")) {
             // Check for query parameters (?lot=...&sn=...)
             let mut parts = rest.splitn(2, '?');
@@ -284,6 +288,18 @@ impl QrService {
                         raw_payload: raw.clone(),
                         message: format!("Barcode '{}' not recognized as location, item, or GS1 matrix.", raw),
                     }),
+                }
+            }
+            ParsedQr::Serial { serial_number } => {
+                let asset = StockService::get_serialized_asset(conn, &serial_number)?;
+                if let Some(asset) = asset {
+                    let item = StockService::get_item_by_id(conn, &asset.item_id)?;
+                    Self::resolve_item_action(conn, item, None, Some(serial_number), active_context_location_id, raw_payload)
+                } else {
+                    Ok(ScanResolution::Unknown {
+                        raw_payload: raw_payload.to_string(),
+                        message: format!("Serialized asset '{}' not found.", serial_number),
+                    })
                 }
             }
         }

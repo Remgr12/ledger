@@ -4,7 +4,10 @@ pub mod module;
 pub mod service;
 
 pub use errors::ManufacturingError;
-pub use models::{BillOfMaterials, BomComponent, WorkOrder, WorkOrderStatus};
+pub use models::{
+    BillOfMaterials, BomComponent, RoutingOperation, WorkOrder, WorkOrderAllocation,
+    WorkOrderStatus, Workstation, WorkstationCapacitySummary,
+};
 pub use module::ManufacturingModule;
 pub use service::ManufacturingService;
 
@@ -192,5 +195,31 @@ mod tests {
         assert_eq!(arm_stock.len(), 1);
         assert_eq!(arm_stock[0].location_code, "BIN-FINISHED");
         assert_eq!(arm_stock[0].quantity, Decimal::from(4));
+    }
+
+    #[test]
+    fn test_workstation_capacity_planning() {
+        let (db, _, _) = setup_test_ctx();
+
+        let ws = ManufacturingService::create_workstation(
+            &db.conn(),
+            "CNC-MILL-01",
+            "5-Axis CNC Milling Center",
+            Some("Haas UMC-500"),
+            Decimal::from(85),
+            8.0,
+        )
+        .unwrap();
+
+        assert_eq!(ws.code, "CNC-MILL-01");
+        assert_eq!(ws.daily_capacity_hours, 8.0);
+
+        let stations = ManufacturingService::list_workstations(&db.conn()).unwrap();
+        assert_eq!(stations.len(), 1);
+
+        let sched = ManufacturingService::get_workstation_capacity_schedule(&db.conn()).unwrap();
+        assert_eq!(sched.len(), 1);
+        assert_eq!(sched[0].scheduled_hours, 0.0);
+        assert!(!sched[0].is_overloaded);
     }
 }

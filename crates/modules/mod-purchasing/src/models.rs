@@ -88,3 +88,52 @@ pub struct PurchaseReceipt {
     pub notes: Option<String>,
     pub lines: Vec<PurchaseReceiptLine>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OcrBoundingBox {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub field_name: String,
+    pub recognized_value: String,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OcrReceiptLine {
+    pub description: String,
+    pub quantity: Decimal,
+    pub unit_price: Decimal,
+    pub total: Decimal,
+    pub tax_rate: Decimal,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OcrReceiptResult {
+    pub id: String,
+    pub file_name: String,
+    pub vendor_name: String,
+    pub invoice_date: String,
+    pub currency: String,
+    pub subtotal: Decimal,
+    pub tax_rate: Decimal,
+    pub tax_amount: Decimal,
+    pub total_amount: Decimal,
+    pub lines: Vec<OcrReceiptLine>,
+    pub bounding_boxes: Vec<OcrBoundingBox>,
+    pub raw_text: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IncomingEInvoice {
+    pub invoice_number: String,
+    pub supplier_name: String,
+    pub supplier_vat_id: Option<String>,
+    pub invoice_date: String,
+    pub currency: String,
+    pub subtotal: Decimal,
+    pub tax_total: Decimal,
+    pub grand_total: Decimal,
+    pub lines: Vec<OcrReceiptLine>,
+}
